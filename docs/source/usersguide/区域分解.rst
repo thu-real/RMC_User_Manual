@@ -1,0 +1,133 @@
+.. _section_domain_decomp:
+
+区域分解（仅限企业版本）
+==================================
+
+
+RMC支持区域分解并行模型。
+
+注意：模块输入卡必须定义在燃耗模块输入卡之后，并行计算使用的 **MPI进程数必须是区域数目的倍数**\ 。
+
+
+区域分解输入卡
+---------------------
+
+
+目前RMC支持两种区域分解的输入方式。
+
+.. code-block:: none
+
+    DomainDecomposition
+    Expand <flag>
+
+
+其中，
+
+-   **DomainDecomposition**\ 为区域分解模块的关键词；
+
+-  **Expand**\ 为判断使用哪种输入方式的关键词, **0**\ 为默认值，由用户自行指定各个区域，而 **1**\ 为简化输入的方法，更简化
+   的方式是，没有\ **Expand** \关键词时，为用户自行指定，有\ **Expand** \时为简化输入方法；
+
+第一种方法的输入格式为：
+
+.. code-block:: none
+
+    DomainDecomposition
+    Expand 0  Domain <id>  cell = < cell_1  cell_2 ... cell_n>
+
+或直接写为：
+
+.. code-block:: none
+
+    DomainDecomposition
+    Domain <id_1>  cell = < cell_11  cell_12 ... cell_1n>
+    Domain <id_2>  cell = < cell_21  cell_22 ... cell_2n>
+
+
+其中，
+
+-   **DomainDecomposition**\ 为区域分解模块的关键词；
+
+-   **Expand**\ 为判断使用哪种输入方式的关键词， **0**\（默认值）表示使用第一种输入方式；
+
+-   **Domain**\ 为每个区域序号及包含栅元的关键词，**id**\ 为区域的序号；
+
+-   **Cell**\ 为区域包含的栅元号，输入格式和CellTally中Cell一致。
+
+
+第二种的简化输入的输入格式为：
+
+.. code-block:: none
+
+    DomainDecomposition
+    Expand 1  AxialLevel = <level>  RadialLevel = <level>
+              AxialUniv  = <univ>   RadialUniv  = <univ>
+              AxialDomain = < id_1 id_2 ... id_n>  RadialDomain = < id_1 id_2 ... id_n >
+
+或直接写为：
+
+.. code-block:: none
+
+    DomainDecomposition
+    Expand  AxialLevel = <level>  RadialLevel = <level>
+            AxialUniv  = <univ>   RadialUniv  = <univ>
+            AxialDomain = < id_1 id_2 ... id_n>  RadialDomain = < id_1 id_2 ... id_n >
+
+其中，
+-   **DomainDecomposition**\ 为区域分解模块的关键词；
+
+-   **Expand**\ 为判断使用哪种输入方式的关键词，**1**\ 表示使用第二种输入方式，即简化输入方法；
+
+-   **AxialLevel**\ 为轴向区域划分的Universe所在的几何层级的关键词，**level**\ 为几何层级的序号；
+
+-   **RadialLevel**\ 为径向区域划分的Universe所在的几何层级的关键词，**level**\ 为几何层级的序号；
+
+-   **AxialUniv**\ 为轴向区域划分的Universe，**univ**\ 为被划分的重复结构Universe的序号；
+
+-   **RadialUniv**\ 为径向区域划分的Universe，**univ**\ 为被划分的重复结构Universe的序号；
+
+-   **AxialDomain**\ 为轴向Universe中划分的区域号，**id**\ 为区域的序号，0为公共区域；
+
+-   **RadialDomain**\ 为径向Universe中划分的区域号，**id**\ 为区域的序号，0为公共区域；
+
+需要注意，区域分解目前仅对燃耗区进行区域分解，其他区域均设置为公共区域。\ **区域分解需要放在计数器卡之前** \，这样，
+每个区域产生的输出文件将只包含所在区域的计数，以及公共区域的计数，但`MeshTally`的计数结果仅在主核输出。
+
+
+
+区域分解示例
+-------------------
+
+第一种方法的输入示例：
+
+.. code-block:: none
+
+    DomainDecomposition
+    Domain 1  cell = 1 >   1: 136 > 3
+    Domain 2  cell = 1 >  137:289 > 3
+
+
+第二种方法（简化输入）的输入示例：
+
+
+.. code-block:: none
+
+    DomainDecomposition
+    Expand AXIALLEVEL=0 RADIALLEVEL=1 AXIALUNIV=0 RADIALUNIV=8 AXIALDOMAIN=1 RADIALDOMAIN=
+           1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+           1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+           1 1 1 1 1 0 1 1 0 1 1 0 1 1 1 1 1
+           1 1 1 0 1 1 1 1 1 1 1 1 1 0 1 1 1
+           1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+           1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1
+           1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+           1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+           2 2 0 2 2 0 2 2 0 2 2 0 2 2 0 2 2
+           2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+           2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+           2 2 0 2 2 0 2 2 0 2 2 0 2 2 0 2 2
+           2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+           2 2 2 0 2 2 2 2 2 2 2 2 2 0 2 2 2
+           2 2 2 2 2 0 2 2 0 2 2 0 2 2 2 2 2
+           2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+           2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2

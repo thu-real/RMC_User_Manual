@@ -1,0 +1,585 @@
+截面参数化功能
+================
+
+截面参数化功能在群常数功能基础上开发，因此相关输入卡包含在群常数模块下。
+
+截面参数化模块RMC输入卡
+-----------------------
+
+.. code-block:: none
+
+    GroupConstant
+    ISBURNUPLINE=<Param>
+    ASSEMBINFO= <univ paras1> < univ paras2> … <univ parasi>
+                univ parasi = <cell number> <level> <matrix> <rod cell level>
+    SUBUNIVERSE <Universes>
+    FORMATTYPE = <Param>
+    MATINFO = <MatIndexes>
+
+其中，
+
+-  **ISBURNUPLINE**\ 统计截面参数化相关信息关键词，输入选项可以是0或1。
+   0表示再启动计算中的某一个燃耗点，1表示一条完整的燃耗链（分支）计算。注意：
+   **输入各个区域是否为燃耗区，因此后面参数个数需要和universe个数一致**。
+
+-  **ASSEMBINFO**\ 统计截面参数化相关信息关键词，输入选项是一组数据，数据组数需要与群常数的universe卡定义区域个数一致。
+   每组数据中包含4个数据：
+   <cell number>为均匀化组件包含的栅元个数。
+   <level>表示区域内的lattice所在层级。
+   <matrix>表示组件形状，即行数（默认组件为方阵）。
+   <rod cell level>定义棒所在cell层级（由于输入卡有轴向分层，需要对轴向的燃耗区进行累加，所以需要指明含有轴向分层的棒的层级）。
+   注意：**使用 ASSEMBINFO 卡必须同时定义 ISBURNUPLINE 卡，否则会报错** 。
+
+-  **SUBUNIVERSE**\ 是可选项。
+   对于几何有截断的情况，需要输入每个区域的有截断的lattice的universe编号。
+   对于几何没有截断的情况，输入-1。
+   该卡可以重复定义，但个数需要与群常数的universe卡定义区域个数一致。
+
+-  **FORMATTYPE**\ 控制参数化接口格式，1表示GAEA格式，2表示CORCA3D格式。
+   注意：**FORMATTYPE卡不能放在输入模块最后，否则会有错** 。
+
+-  **MATINFO**\ 需要依次输入硼浓度，氙浓度，慢化剂密度，燃料温度四个物理状态对应的材料编号。
+
+截面参数化模块Python输入卡
+---------------------------
+
+截面参数化功能对应的PYTHON程序有两个模块，对于参数化模块，需要提供输入卡，文件名为inp_preprocess。
+inp_preprocess用于生成多物理状态的输入文件，具体格式如下：
+
+.. code-block:: none
+
+    MPI=<para>  openmp=<para>  platform=<para>
+    RESTARTBRANCH AUXILIARY
+    INDEX=<para>  MATTEMP=<temperature material> burnuppoint=<para>
+
+Python输入卡中：
+
+-  **MPI/openmp/platform**\ 控制计算资源，MPI，openmp设定并行，默认关闭openmp，MPI=60。
+   Platform设定计算平台，默认为1，计算方式为本地服务器，命令行为：mpiexec -n ...；
+   也可以输入2，表示天河平台，命令行为：yhrun ...
+
+-  **RESTARTBRANCH/ AUXILIARY_Line**\ 再启动/辅线关键词，二选一。
+
+-  **INDEX**\ 表示分支序号。
+
+-  **MATTEMP**\ 表示材料温度，后面给出具体数值(单位为K)，再之后给出需要对应修改的材料序号。若所有材料均修改，可以直接输入All。
+
+-  **burnuppoint**\ 表示再启动计算计算的燃耗步（注意：燃耗步数字从0开始，而不是从1开始）。
+
+以下给出一个简单例子：
+
+|
+
+.. code-block:: c
+  :caption: 分支计算
+  :name: 分支计算
+
+    MPI=80  openmp=12  platform=2
+    RESTARTBRANCH
+    INDEX=1    MATTEMP=1000.0  All  burnuppoint=0 3 4 6 8 9
+    INDEX=2 MATTEMP=800.0   All  burnuppoint=0 3 4 6 8 9
+
+
+|
+
+六边形组件的多区域模型算例
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+截面参数化的功能较为复杂，尤其是对于六边形组件这种有截断的几何。因此采用一个包含六边形组件的多区域模型进行实例说明。
+该几何模型含有三个燃料组件，一个毒物棒组件以及边缘的反射层区域。燃料组件内部有24根燃料棒，每根棒轴向含有8个燃料芯块。
+芯块内填充燃料颗粒，使用RSA方法，填充率为35%。注意：**目前暂不考虑RSA模型底层还有嵌套**。
+
+.. figure:: media/multi_region.png
+   :width: 4.5in
+   :name: multi_region_fig
+ 
+   
+   六边形组件的多区域模型
+   
+
+上图为具体的几何模型。为了表示方便，我们对模型各个区域进行编号，如下图所示。
+
+.. figure:: media/multi_region_index.png
+   :width: 4.5in
+   :name: multi_region_index_fig
+
+   六边形组件的多区域模型编号
+
+算例输入文件如下，几何模型中区域1到5分别对应universe 10，11，12，21，13：
+
+|
+
+.. code-block:: c
+  :caption: 六边形组件的多区域模型
+  :name: multi_region
+
+    ////////////////////// GR5 ////////////////
+    ////////////// sleeve : SiC
+    ////////////// Block bottom graphite, top He(save for future)  
+    /////////////  graphite & SiC matrix & sleeve: 1ppm   TRISO: 0.5ppm
+    /////////////  top and bottom block, only channels for coolant and CR rod
+
+    //注意：由于采用燃耗区合并，因此该处体积需要给出的是所有小球的总体积，燃耗应该不会有较大影响，但功率会受影响\n
+    //各个cell均需要给定温度，这里截面参数化需要温度一致\n
+    Universe 1 //move = 0.050319623 0.050319623 0.050319623    //triso 
+    cell 1 -1           mat = 1  tmp = 1000  vol = 7.5313E-01 //kernel 8.5% 
+    cell 2  1 & -2      mat = 2  tmp = 1000  vol = 1.0422E+00 //buffer      
+    cell 3  2 & -3      mat = 3  tmp = 1000  vol = 6.5565E-01 //IPyC        
+    cell 4  3 & -4      mat = 4  tmp = 1000  vol = 6.9737E-01 //SiC         
+    cell 5  4 & -5      mat = 5  tmp = 1000  vol = 9.5248E-01 //OPyC        
+    cell 6  5           mat = 6  tmp = 1000  vol = 1.0000E-30 //SiC matrix
+                          
+    Universe 2   lat = 4  MATRIC = 3  move = -1.1 -1.1 0.05
+                PARTICLE = 1
+                PF = 0.3//0.349631585
+                RAD = 0.043981974  //PFCORRECT = 0
+                RSA = 1
+                TYPE = 2
+                SIZE = 1.1 3.596
+            //DEM = 1  TIME = 0.1
+
+    Universe 3
+    cell 14 -6    mat = 6  tmp = 1000 
+
+    ///////// pellet /////
+    Universe 4
+    cell 11 -14 & 16 & -19 & !12   mat =  7  tmp = 1000 vol = 1.6864E+00 //sleeve  
+    cell 12 -13 & 17 & -18         fill = 2     vol= 13.6696       //fuel compact
+    cell 13 14 : -16 : 19          mat =  8  tmp = 1000 vol = 3.4914E-01  //He
+
+    Universe 16  // bottom
+    cell 7 -14  mat = 9  tmp = 1000 vol = 5.9496E+00 //graphite  
+    cell 8 14   mat = 9  tmp = 1000 vol = 1.3527E-01 //graphite 
+
+    Universe 17  // top 
+    cell 9 -14  mat = 8  tmp = 1000 vol = 1.0000E-30  //He  
+    cell 10 14   mat = 8 tmp = 1000 vol = 1.0000E-30  //He 
+
+    // 8 pellets
+    Universe 5 move = 0 0 -2.264 lat = 1   pitch = 1 1 3.696   scope = 1 1 10   fill = 16 4*8 17  
+
+    Universe 6  // fuel rod
+    cell 15  -15 fill = 5       vol=131.73      //fuel
+    cell 16  15  mat =  9 tmp = 1000 vol = 2.9782E+02  //block graphite
+
+    Universe 7   //graphite rod
+    cell 17  -21 mat = 9  tmp = 1000 vol = 4.2955E+02
+    cell 18  21  mat = 9  tmp = 1000 vol = 1.0000E-30
+
+    Universe 8  //coolant rod
+    cell 19  -20  mat = 8 tmp = 1000 vol = 6.2329E+01 // He
+    cell 20   20  mat = 9 tmp = 1000 vol = 3.6722E+02 // graphite
+
+    Universe 40 //BP1-1
+    cell 100 -61 & 67 & -68        mat = 15  tmp = 1000  vol = 7.068583
+    cell 101  61 & -62 & 67 & -68  mat = 15  tmp = 1000  vol = 7.068583
+    cell 102  62 & -63 & 67 & -68  mat = 15  tmp = 1000  vol = 4.712389
+    cell 103  63 & -64 & 67 & -68  mat = 15  tmp = 1000  vol = 3.534292
+    cell 104  64 & -65 & 67 & -68  mat = 15  tmp = 1000  vol = 1.178097
+    cell 105  ((65 & 67 & -68) : -67 : 68) & -66   mat = 8  tmp = 1000  vol = 5.898340 
+    cell 106  66    mat = 9  tmp = 1000  vol = 185.314015
+
+    Universe 41  rotate = -0.5 0.8660254 0 -0.8660254 -0.5 0 0 0 1 //BP1-2 r120
+    cell 110 -61 & 67 & -68        mat = 15  tmp = 1000  vol = 7.068583
+    cell 111  61 & -62 & 67 & -68  mat = 15  tmp = 1000  vol = 7.068583
+    cell 112  62 & -63 & 67 & -68  mat = 15  tmp = 1000  vol = 4.712389
+    cell 113  63 & -64 & 67 & -68  mat = 15  tmp = 1000  vol = 3.534292
+    cell 114  64 & -65 & 67 & -68  mat = 15  tmp = 1000  vol = 1.178097
+    cell 115  ((65 & 67 & -68) : -67 : 68) & -66   mat = 8  tmp = 1000 vol = 5.898340
+    cell 116  66    mat = 9  tmp = 1000  vol = 185.314015
+
+    Universe 42  rotate = -0.5 -0.8660254 0 0.8660254 -0.5 0 0 0 1 //BP1-3 r240
+    cell 120 -61 & 67 & -68        mat = 15  tmp = 1000  vol = 7.068583
+    cell 121  61 & -62 & 67 & -68  mat = 15  tmp = 1000  vol = 7.068583
+    cell 122  62 & -63 & 67 & -68  mat = 15  tmp = 1000  vol = 4.712389
+    cell 123  63 & -64 & 67 & -68  mat = 15  tmp = 1000  vol = 3.534292
+    cell 124  64 & -65 & 67 & -68  mat = 15  tmp = 1000  vol = 1.178097
+    cell 125  ((65 & 67 & -68) : -67 : 68) & -66   mat = 8  tmp = 1000 vol = 5.898340
+    cell 126  66    mat = 9  tmp = 1000  vol = 185.314015
+
+    // block
+    //lattice各个cell的体积在volume卡提供\n
+    Universe 9  move = -24 -13.85640646 0 
+         lat=2 scope= 9 9 sita = 60 pitch = 4 4 fill = //inner block 
+             7 * 9
+             7  7  7  7  7  6  6  41 7 
+             7  7  7  6  6  8  6  6  7
+             7  7  6  8  6  6  8  6  7
+             7  40 6  6  8  6  6  7  7
+             7  6  8  6  6  8  6  7  7
+             7  6  6  8  6  6  7  7  7
+             7  7  6  6  42 7  7  7  7
+             7 * 9
+
+    Universe 10
+    //cell体积需要提供均匀化区域包含的所有层级的cell，体积可以是真实的也可以是相对的\n
+    cell 27  31 & -32 & -33 & 34 & 35 & -36        fill =  9      vol=498.8452656  //outer block
+    cell 28  -31 : 32 : 33 : -34 : -35 : 36        mat =  8   tmp = 1000 vol = 8.348729792  //He 1mm
+    /////// a block end 
+
+    Universe 11
+    cell 29  31 & -32 & -33 & 34 & 35 & -36        fill =  9     vol=498.8452656         //outer block
+    cell 30  -31 : 32 : 33 : -34 : -35 : 36        mat =  8   tmp = 1000 vol = 8.348729792  //He 1mm
+
+    Universe 12
+    cell 31  31 & -32 & -33 & 34 & 35 & -36        fill =  9       vol=498.8452656       //outer block
+    cell 32  -31 : 32 : 33 : -34 : -35 : 36        mat =  8   tmp = 1000 vol = 8.348729792  //He 1mm
+
+    Universe 13
+    cell 33 -74 mat = 9 tmp = 1000 vol=1.0  //core graphite
+
+
+
+    Universe 73 //move = 24.2 0 0 
+    cell 60 -40       mat = 8  tmp = 1000 vol=0.188495556//He
+    cell 61 40 & -41  mat = 12 tmp = 1000 vol=0.146607655//inner cladding
+    cell 62 41 & -42  mat = 8  tmp = 1000 vol=0.08901179//He 
+    cell 63 42 & -43  mat = 11 tmp = 1000 vol=3.979350627//control rod 
+    cell 64 43 & -44  mat = 8  tmp = 1000 vol=0.184097326//He 
+    cell 65 44 & -45  mat = 12 tmp = 1000 vol=0.64088489//outer cladding
+    cell 66 45        mat = 8  tmp = 1000 vol=1.939619271//He 
+
+
+    Universe 21  //move = 24.2 0 0 ////shutdown contrl column
+    cell 84 -46 vol=7.168067116 fill = 73
+    cell 67 46 & 31 & -32 & -33 & 34 & 35 & -36   mat = 9 tmp = 1000 vol=34.40237168  //core graphite
+    cell 83 -31 : 32 : 33 : -34 : -35 : 36    mat = 8 tmp = 1000 vol=0.695727483 //He 1mm
+
+    Universe 30 lat=2 scope= 3 3 sita = 60 pitch = 24.2 24.2 fill = //inner block 
+     13 10 13
+     21 11 13
+     12 13 13
+
+
+    Universe 0
+    cell 90  69 & -70 & 71 & -72 & -73  fill = 30 vol=1.0 //core 
+    cell 92  -69: 70: -71 : 72 : 73    mat = 0 vol=1.0e-30  void = 1 
+
+
+    SURFACE
+    // ----------triso partic
+    surf 1   so   0.025       // keneral
+    surf 2   so   0.033396452     // buffer
+    surf 3   so   0.037047997      // IPyC
+    surf 4   so   0.040272833   // SiC
+    surf 5   so   0.043981974   // OPyC
+    surf 6   inf
+    /// ----------pellet 
+    //surf 11 cz 0.30    //inner radius
+    //surf 12 cz 0.35    //outer radius
+    surf 13 cz 1.1     //pellet
+    surf 14 cz 1.15    //sleeve radius
+    surf 15 cz 1.163   //fuel hole 
+    surf 16 pz 0
+    surf 17 pz 0.05
+    surf 18 pz 3.646
+    surf 19 pz 3.696
+    surf 20 cz  0.8   // coolant hole
+    /// ---------- block
+    surf 21 cz 10    // block inner radius
+    // surf 22 cz 10.05 // inner tube inner radius
+    // surf 23 cz 10.25 // inner tube outer radius
+    // surf 24 cz 10.4  // pressure tube inner radius
+    // surf 25 cz 10.9  // pressure tube outer radius
+    // surf 26 cz 11    // block outer radius
+    surf 27 cz 0.75  //relector hole
+    surf 31 px -12
+    surf 32 px 12
+    surf 33 p 1 1.732 0 24
+    surf 34 p 1 -1.732 0 -24
+    surf 35 p 1 1.732 0 -24
+    surf 36 p 1 -1.732 0 24
+    ///----------shutdown control column
+    surf 40 cz 0.6      //inner clad inside
+    surf 41 cz 0.8      //inner clad outside
+    surf 42 cz 0.9      //control rod inside
+    surf 43 cz 2.9      //control rod outside
+    surf 44 cz 2.96     //outer clad inside
+    surf 45 cz 3.16     //outer clad outside
+    surf 46 cz 3.7      //control rod channel
+    ///------------BP
+    surf 61 c/z  1 0  0.27386128
+    surf 62 c/z  1 0  0.38729834
+    surf 63 c/z  1 0  0.44721360
+    surf 64 c/z  1 0  0.48733972
+    surf 65 c/z  1 0  0.5
+    surf 66 c/z  1 0  0.55
+    surf 67 pz   0.5
+    surf 68 pz   30.5
+    surf 69 pz 0  bc=1
+    surf 70 pz 31  bc=1
+    surf 71 px 12.11 bc=1
+    surf 72 p 1 -1.732 0 24.2 bc=1
+    surf 73 p 1 1.732 0 96.8   bc=1
+    surf 74 cz 200
+
+    //surf 69 pz 0  bc=1
+    //surf 70 pz 31  bc=1
+    //surf 71 px 0  bc=1
+    //surf 72 px 12.1   
+    //surf 73 p 1 1.732 0 24.2   bc=1
+    //surf 74 p 1 -1.732 0 -24.2 
+    //surf 75 p 1 1.732 0 -24.2 
+    //surf 76 p 1 -1.732 0 24.2 bc=1
+
+
+
+    MATERIAL
+    //  -------kernel 8.5%---------
+    mat 1  -10.4
+          5010.30c  -0.5000E-06  
+          8016.30c  -1.1855E-01  
+          8017.30c  -5.0406E-05  
+         92234.30c  -5.9058E-04  
+         92235.30c  -7.4919E-02  
+         92238.30c  -8.0589E-01
+    //  ------buffer layer--------
+    mat 2  -1.235294118
+         5010.30c  6.8467E-09  
+         6000.30c  6.1936E-02
+    //sab 2 Graph.71t
+    //  -------IPyC layer---------
+    mat 3  -2.235294118
+         5010.30c  1.2389E-08  
+         6000.30c  1.1207E-01
+    //sab 3 Graph.71t
+    //  -------SiC layer----------
+    mat 4  -3.741176471
+         5010.30c  2.0736E-08  
+         6000.30c  5.6189E-02 
+        14028.30c  5.1823E-02
+        14029.30c  2.6313E-03  
+        14030.30c  1.7346E-03
+    //sab 4 Graph.71t
+    //  --------OPyC layer--------
+    mat 5   -2.235294118
+         5010.30c  1.2389E-08  
+         6000.30c  1.1207E-01
+    //sab 5 Graph.71t    
+    //  ------SiC matrix----
+    mat 6  -2.933721806
+         5010.30c  3.2520E-08  
+         6000.30c  4.4062E-02  
+        14028.30c  4.0638E-02
+        14029.30c  2.0634E-03  
+        14030.30c  1.3602E-03
+    //sab 6 Graph.71t
+    //  ------SiC sleeve-----
+    mat 7  -3.18
+         5010.30c  3.5251E-8  
+         6000.30c  4.7761E-2  
+        14028.30c  4.4050E-2
+        14029.30c  2.2366E-3  
+        14030.30c  1.4744E-3
+    //sab 7 Graph.71t
+    //  ------helium coolant------
+    mat 8  -1.6361E-4
+         2003.30c  3.3724E-11  
+         2004.30c  2.4616E-5
+    //  ------IG-110 graphite-----
+    mat 9  -1.7512
+         5010.30c  1.9412E-8  
+         6000.30c  8.7804E-2
+    //sab 9 Graph.71t
+    //  ------control rod natural B4C---------
+    mat 11  -2.5
+         5010.30c  2.1579E-02  
+         5011.30c  8.7406E-02  
+         6000.30c  2.7246E-02
+    //sab 11 Graph.71t
+    //  -------alloy 800H---------
+    mat 12  -8.03
+        6000.30c  3.2210E-4  
+        13027.30c  6.7209E-4  
+        14028.30c  5.5580E-4  
+        14029.30c  2.8222E-5  
+        14030.30c  1.8604E-5  
+        15031.30c  3.1225E-5  
+        16032.30c  1.4325E-5
+        16033.30c  1.1311E-7
+        16034.30c  6.4094E-7
+        16036.30c  1.5081E-9
+        22046.30c  3.1254E-5
+        22047.30c  2.8186E-5
+        22048.30c  2.7928E-4
+        22049.30c  2.0495E-5
+        22050.30c  1.9624E-5  
+        24050.30c  8.4860E-4  
+        24052.30c  1.6364E-2  
+        24053.30c  1.8556E-3  
+        24054.30c  4.6189E-4  
+        25055.30c  8.8022E-4  
+        26054.30c  2.2265E-3  
+        26056.30c  3.4951E-2  
+        26057.30c  8.0717E-4  
+        26058.30c  1.0742E-4  
+        28058.30c  1.8229E-2  
+        28060.30c  7.0217E-3  
+        28061.30c  3.0523E-4  
+        28062.30c  9.7320E-4  
+        28064.30c  2.4785E-4  
+        29063.30c  1.5791E-4  
+        29065.30c  7.0383E-5  
+    // ------ Burnable Poison (Gd2O3 1%) -----
+    mat 13  -1.71789
+         5010.30c  1.9043E-8  
+         6000.30c  8.6134E-2
+    //sab 13 Graph.71t
+    mat 15 -1.7  
+         6000.30c  8.4383E-02
+         8016.30c  8.4691E-05
+         8017.30c  3.3890E-08 
+        64152.30c  1.1297E-07
+        64154.30c  1.2144E-06
+        64155.30c  8.3200E-06
+        64156.30c  1.1562E-05
+        64157.30c  8.8566E-06
+        64158.30c  1.4047E-05
+        64160.30c  1.2370E-05
+    //sab 15 Graph.71t
+    CeAce  OTFDB=1  OTFSab=0  pTable=0 DBRC=0  ErgBinHash=1  
+
+    CRITICALITY
+    PowerIter   population = 1000  10  15
+    InitSrc point =  30  30  5
+
+    GroupConstant
+    //支持多个universe，该卡必须放在第一个位置
+    Universe = 10 11 12 13 21 
+    Energy = 4E-6//3.000000E-08 1.463700E-07 3.500000E-07 1.071000E-06 1.855390E-06 9.118820E-03 8.208500E-01
+    WIMS=0  //采用两步法，细群69群结构，并群后采用energy结构，因此energy结构需要包含于wims结构中\n
+    BONE=0  //采用b1修正\n
+    Hybrid=1  // Output MCNP格式多群文件
+    Angular=1  //角分布变量阶数 1 for the default, as p1\n
+    //均匀化方式，0：不均匀化，1：DF，2：sph
+    //DF参数：1（四边形) 2（六边形）
+    //SPH参数：迭代次数\n
+    EQUIVALENCE = 2 10
+    //volume卡说明：
+    //注意：该卡可以多次定义，但需要与universe卡的输入个数一致\n
+    //卡片给出顺序和universe卡的universe对应
+    //volume卡5行数据
+    //第一行第一个为总体积（真实体积），用于sph计算\n     
+    //1-3 //4-5 //6-7 //8-9 //axial
+    volume = 7732 0*20 71.59 0*6
+                  0*2 4.2955E+02 2.1477E+02 0*6 2.1477E+02 4.2955E+02*2 2.1477E+02 0*4
+                  0 4.2955E+02*4 2.1477E+02 0*3 1.4318E+02 4.2955E+02*5 71.59 0*2
+                  0 2.1477E+02 4.2955E+02*2 2.1477E+02 0*6 1.4318E+02 0*6 
+                  0 3.696*8 1.432
+    volume = 1.5464E+04 1.0E-30*6 1.4318E+02 1.0E-30*6 2.1477E+02 4.2955E+02*2 2.1477E+02 1.0E-30*3 1.4318E+02 4.2955E+02*5 1.4318E+02
+                                     1.0E-30*2 4.2955E+02*6 1.0E-30*2 2.1477E+02 4.2955E+02*5 2.1477E+02 1.0E-30*2 4.2955E+02*6 1.0E-30*2
+                                     1.4318E+02 4.2955E+02*5 1.4318E+02 1.0E-30*3 2.1477E+02 4.2955E+02*2 2.1477E+02 1.0E-30*6 1.4318E+02
+                                     1.0E-30*6 0 3.696*8 1.432 
+    //volume卡5行数据
+    //第一行第一个为总体积（真实体积），用于sph计算\n                 
+    //81个数据的结构：
+    //1-2 //3-4 //5-6 //7-9 
+    //10个axial数据
+    //注意：volume卡内部不要加注释，数据太多可以分行写数据\n
+    volume = 7732 0*6 1.4318E+02 0*6 2.1477E+02 4.2955E+02*2 2.1477E+02 0
+                  0*2 1.4318E+02 4.2955E+02*5 71.59 0*2 4.2955E+02*4 2.1477E+02 0*2
+                  0 2.1477E+02 4.2955E+02*2 2.1477E+02 0*5 4.2955E+02 2.1477E+02 0*6
+                  71.59 0*26
+                  0 3.696*8 1.432
+    //对应universe13,该区域不是lattice，给1.0即可\n
+    //但如果要算SPH给出真实体积\n
+    volume = 2577.3
+    //对应universe21,该区域不是lattice，给1.0\n
+    volume = 7732
+    //ASSEMBINFO卡说明：
+    //结构：<univ paras>...
+    //<cell number>,<level>,<matrix>,<axial para num>,<axial para>
+    //含义：
+    //有多少universe，给定多少组<univ paras>
+    //每个<univ paras>包含<cell number>,<level>,<matrix>,<rod cell level>
+    //例如universe10: 81 1 9 16 8 1*15
+    //包含81个cell,包含lattice结构，层级为向下找1层，找到universe9,输出该区域功率和燃耗的h5文件采用9*9矩阵输出81个数据\n
+    //由于输入卡有轴向分层，需要对轴向的燃耗区进行累加，因此设置该卡
+    //universe10包含的burncell有：1 100 101 102 103 104 110 111 112 113 114 120 121 122 123 124
+    //轴向根据cell vector 区分，3的含义：90 > 2 > 27 > 15，（0，1，2，3）
+    ASSEMBINFO = 81 1 9 3    81 1 9 3   81 1 9 3    1 0 1 3    1 0 1 3
+    ////Branch signal
+    //1 表示主线，辅线,2再启动\n
+    ISBURNUPLINE 1
+    //输入各个区域是否为燃耗区，1是，0不是
+    IsBurnRegion=1 1 1 0 0
+    //SUBUNIVERSE：
+    //支持重复定义该卡
+    //用于几何截断情况\n
+    //卡片给出顺序和universe卡的universe对应
+    //例如universe10: 被截断的区域有两个,9,5(volume卡先给出9，再5)\n
+    SUBUNIVERSE=9 5
+    SUBUNIVERSE=9 5
+    SUBUNIVERSE=9 5
+    //无截断或者截断无影响给出-1
+    SUBUNIVERSE=-1
+    SUBUNIVERSE=-1
+    FORMATTYPE = 1
+    //设置状态参数的卡
+    //硼浓度，氙浓度，慢化剂密度，燃料温度对与材料编号\n
+    MATINFO = 9 1 9 1
+
+    //注意：截断燃耗区会报0energy的warning,不影响计算\n
+    //可以考虑把截断的燃耗区替换为非燃耗结构\n
+    BURNUP
+    BurnCell    1 100 101 102 103 104 110 111 112 113 114 120 121 122 123 124
+    TimeStep    10 20// 
+    Power       17.98162286*2
+    Substep     10
+    Inherent    0.9999
+    AceLib      .30c
+    Strategy    0
+    Parallel    1
+    Solver      2
+    Merge  7 2  //燃耗区合并功能，(level /universe) 0->30->10/11/12->9->6->5->4->2(7层)，注意，这里必须让10,11,12是同一层，否则出错\n
+
+    //Plot ColorScheme=9  Continue-calculation=0
+    //PlotID 1 Type = slice Color = mat Pixels=5000 5000 Vertexes=10  -8 5  60.5 60  5    
+    //PlotID 2 Type = slice Color = mat Pixels=4000 4000 Vertexes= 20  -8 -1  20 60 32
+    //PlotID 3 Type = slice Color = cell Pixels=4000 8000 Vertexes=23  -1 5  24 1  5
+
+
+|
+
+
+参数化计算说明
+----------------------
+
+截面参数化的计算流程则如下所示：
+
+1)在用python计算前，请确保已经使用RMC完成群常数计算，
+群常数计算需要开启EQUIVALENCE = 2，Hybrid=1 等选项，详见RMC用户手册群常数模块说明；
+在群常数计算时，注意开启接续计算功能（在输出控制模块中，定义inpfile为1），用于截面参数化的再启动计算。
+
+2)计算流程：
+
+1 准备好inp_preprocess，用于辅线，再启动等计算；
+
+2 准备好RMC程序，xsdir等文件和程序
+
+3 准备好接续输出文件(XXX.FMTinp.stepXXX 和 materialXX)
+
+4 运行main.py完成参数化分支文件构建及计算
+
+5 利用分支生成的rmc输入文件以及多群输出文件在sph的python程序文件夹下进行sph计算，
+注意再启动的sph文件用python处理产生的文件(路径：~/Restart/branch_xx/xsparatable_SPH.h5)
+
+6 将sph计算结果文件复制
+
+ 辅线的每个sph_Iter.h5对应放到~/Auxliary/branch_xx/burnup_xx/下
+
+ 主线的每个sph_Iter.h5对应放到~/burnup_xx/下
+
+ 再启动的每个sph_Iter.h5对应放到~/Restart/branch_xx/step_xx/下
+
+ 再启动删除~/Restart/branch_xx/xsparatable_SPH.h5文件
+
+7 准备好Pair_inp文件，里面设置参数化区域和sph区域的对应关系
+
+8 运行ChangeRestartXS.py 和 ChangeAuxliaryXS.py
+
+9 运行H5FileFormat.py
+
+10 最终结果在Result文件夹下
+

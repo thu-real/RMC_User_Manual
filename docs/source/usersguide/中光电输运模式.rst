@@ -1,0 +1,146 @@
+中子输运计算
+====================
+
+RMC目前支持中子-光子-电子耦合输运计算
+
+中子输运计算物理开关
+--------------------------
+
+.. code-block:: none
+
+    Physics
+    ParticleMode < particle type >
+    Neutron MinEnergy=<params>
+
+
+其中，
+
+-  **Physics**\ 为中子输运计算物理开关的关键词；
+
+-  **ParticleMode**\ 表示粒子输运计算物理开关对应的粒子类型，N代表中子、P代表光子、E代表电子；
+
+-  **Neutron**\ 为中子物理过程子选项卡的关键字。
+
+-  **MinEnergy**\ 中子输运最低能量，单位为MeV，默认值1.0E-20。如果输运过程中中子能量低于MinEnergy，则中子被杀死。
+
+|
+
+光子输运计算
+====================
+
+RMC目前支持中子-光子-电子耦合输运计算
+
+光子输运计算物理开关
+--------------------------
+
+.. code-block:: none
+
+    Physics
+    ParticleMode < particle type >
+    Photon PPRODUCEE=<params> TTB=<params> ANNIHILATION=<params> COHERENT=<params> PHOTONNUCLEUS=<params> DOPPLER=<params> UPERERG=<params> ERGCUTGMA=<params> ELECMULTITIMES=<params>
+
+
+
+其中，
+
+-  **Physics**\ 为中子-光子-电子耦合输运计算物理开关的关键词；
+
+-  **ParticleMode**\ 表示粒子输运计算物理开关对应的粒子类型，N代表中子、P代表光子、E代表电子；
+
+-  **Photon**\ 指定粒子输运物理开关对应的光子输运的物理开关的标志；
+
+-  **PPRODUCEE**\ 指定光子输运过程中是否生成电子，1表示生成电子、0表示不生成电子。默认等于0，即默认不开启；
+
+-  **TTB**\ 指定光子输运过程中是否采用TTB模型处理电子，1表示采用TTB模型、0表示不采用TTB模型，默认等于0，即默认不开启；
+
+-  **ANNIHILATION**\ 暂时不涉及，指定光子输运过程中是否采用ANNIHILATION模型处理电子，1表示采用ANNIHILATION模型、0表示不采用ANNIHILATION模型，默认等于0，即默认不开启；
+
+-  **COHERENT**\ 指定光子输运过程中是否处理汤普逊散射，1表示处理汤普逊散射、0表示不处理汤普逊散射，默认等于1，即默认开启；
+
+-  **PHOTONNUCLEUS**\ 指定光子输运过程中是否处理光核反应，1表示处理光核反应、0表示不处理光核反应，默认等于0，即默认不开启；
+
+-  **DOPPLER**\ 指定光子输运过程中是否处理多普勒展宽，1表示处理多普勒展宽、0表示不处理多普勒展宽，默认等于0，即默认不开启；
+
+-  **UPERERG**\ 指定光子输运过程中的能量分界值，大于能量分界值，则进行简易模式的光子输运，单位是MeV，默认值是100Mev；
+
+-  **ERGCUTGMA**\ 指定光子输运过程中的能量下限，单位是MeV，默认值是1.0E-03Mev;
+
+-  **ELECMULTITIMES**\ 指定光子输运过程中产生电子的倍增因子，默认为1.0。
+
+
+
+光子输运计算物理开关输入示例
+-----------------------------------
+
+固定源释放10000个源中子，固定源为点源，位于坐标原点，源中子能量为0.1 MeV。
+纯光子输运计算，光子输运过程不产生电子，也不采用TTB模型处理电子，处理汤普逊散射和光核反应，不进行多普勒展宽的操作，能量上限为100MeV，能量下限是1.0E-3，光子输运产生电子的倍增因子为1.0
+
+.. code-block:: c
+
+    Physics
+    ParticleMode p
+    Photon  PPRODUCEE = 0  TTB = 0  ANNIHILATION = 0  COHERENT = 1 PHOTONNUCLEUS =1  DOPPLER = 0  UPERERG = 100 ERGCUTGMA = 1.0E-3  ELECMULTITIMES = 1.0
+
+|
+
+
+电子输运计算
+====================
+
+电子输运计算物理开关
+--------------------------
+
+.. code-block:: none
+
+    Physics
+    ParticleMode < particle type >
+    Electron MaxEnergy=<params> MinEnergy=<params> EPRODUCEP=<params>  ErgLossStraggle=<params> BREMS=<params> BREMSANGLE=<params>  BREMSEACHSUBTEP=<params> BREMSERGLOSSMETHOD=<params>  BREMSPHOTONMULTITIMES=<params> XRAYMULTITIMES=<params> KNOCKONMULTITIMES=<params>
+
+
+
+其中，
+
+-  **Physics**\ 为中子-光子-电子耦合输运计算物理开关的关键词；
+
+-  **ParticleMode**\ 表示粒子输运计算物理开关对应的粒子类型，N代表中子、P代表光子、E代表电子；
+
+-  **Electron**\ 为电子物理过程子选项卡的关键字。
+
+-  **MaxEnergy**\ 电子输运最高能量，单位为MeV。默认值100。目前RMC数据库要求MaxEnergy不能大于100.如果输运过程中电子能量大于MaxEnergy，则会报错。
+
+-  **MinEnergy**\ 电子输运最低能量，单位为MeV，默认值1.0E-3。如果输运过程中电子能量低于MinEnergy，则电子被杀死。
+
+-  **ErgLossStraggle**\ 阻止本领是否波动。默认值为1，波动。若不波动，则在确定材料中确定能量电子的阻止本领为定值。
+
+-  **BREMS**\ 是否考虑韧致辐射导致的电子。
+
+-  **BREMSANGLE**\ 是否详细抽样次级韧致辐射光子的方向。默认为1，详细抽样。设置为0，则简单抽样。
+
+-  **BREMSPHOTONMULTITIMES**\ 一次韧致辐射过程中，产生的次级韧致辐射光子的数量。应为大于等于0的实数，默认值1。次级韧致辐射光子的权重会相应除以BREMSPHOTONMULTITIMES。大于1时可减少次级韧致辐射光子的方差，小于1时可减少次级韧致辐射光子的模拟时间。
+
+-  **BREMSEACHSUBTEP**\ 是否在每一个射程子步强制产生次级韧致辐射光子。可设置为0或者1。默认值为0。若设置为1，则要求BREMSPHOTONMULTITIMES=1，同时次级韧致辐射光子的权重会做等期望调整。
+
+-  **BREMSERGLOSSMETHOD**\ 控制电子因韧致辐射导致的能量损失的计算方法，可设置为0,或者1。默认值1。1代表使用第一个韧致辐射光子的能量计算电子能量损失，0代表使用所有韧致辐射光子能量的平均值计算电子能量损失。
+
+-  **XRAYMULTITIMES**\ 一次X射线荧光或者俄歇电子产生过程中，产生的次级X射线荧光或者俄歇电子的数量。应为大于等于0的实数，默认值1。次级X射线荧光或者俄歇电子的权重会相应除以XRAYMULTITIMES。大于1可减少次级X射线荧光或者俄歇电子的方差，小于1时可减少次级X射线荧光或者俄歇电子的模拟时间。
+
+-  **KNOCKONMULTITIMES**\ 一次击出电子过程中，产生的次级击出电子的数量。应为大于等于0的实数，默认值1。次级击出电子的权重会相应除以XRAYMULTITIMES。可减少击出电子次级的方差。大于1可减少击出电子的方差，小于1时可减少击出电子的模拟时间。击出电子数量多，打开开关后输运时间增加大约两个小时。
+
+
+
+
+电子输运计算物理开关输入示例
+-----------------------------------
+
+光电子耦合输运计算，电子能量上限100Mev，下限0.001Mev，电子输运过程产生光子，阻止本领波动，产生韧致辐射电子，详细抽样次级韧致辐射光子的方向，
+不在每一个射程子步强制产生次级韧致辐射光子，使用第一个韧致辐射光子的能量计算电子能量损失，一次X射线荧光或者俄歇电子产生过程中产生1个次级X射线荧光或者俄歇电子，不产生击出电子
+
+.. code-block:: c
+
+    Physics
+    ParticleMode P E
+    Photon    PPRODUCEE=1  TTB=0  ANNIHILATION=0  COHERENT=1
+              PHOTONNUCLEUS=0  DOPPLER=1  UPERERG=100  ERGCUTGMA=1.0E-3  ELECMULTITIMES=1.0
+    Electron  MaxEnergy=100  MinEnergy=1.0E-3  EPRODUCEP=1  ErgLossStraggle=1  BREMS=1
+              BREMSANGLE=1  BREMSEACHSUBTEP=0  BREMSERGLOSSMETHOD=1  BREMSPHOTONMULTITIMES=1.0
+              XRAYMULTITIMES=1.0  KNOCKONMULTITIMES=0.0

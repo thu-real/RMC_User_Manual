@@ -1,0 +1,66 @@
+.. _section_mesh:
+
+网格
+==============
+
+在蒙卡计算，尤其是引入热工反馈的计算中，经常需要用到基于网格的参数，作为温度/密度等
+信息的输入量。网格选项卡可根据用户指定的信息，读取定义好的网格参数。
+
+.. _section_mesh_file:
+
+网格文件格式
+--------------
+
+RMC可读取HDF5格式的网格文件。HDF5文件的组成方式可通过网络资源查询，此手册
+不加赘述。RMC读取的HDF5网格文件至少需要包含两个内容，即几何Group与网格Dataset：
+
+- 几何Group的Group名限定为"Geometry"。该组需要包含一个attribute，名称限定为
+  "MeshType"，值为1，表示该网格是三维均匀结构化网格。后续RMC会增加读取其它类型
+  网格的功能。该组还需要包含两个Dataset：第一个Dataset名称限定为"BinNumber"，
+  是一个大小为3的数组，表示X/Y/Z每个维度上分别有多少个网格；
+  第二个Dataset名称限定为"Boundary"，是一个3*2的矩阵，表示X/Y/Z每个维度上的
+  最大边界与最小边界。
+
+- 网格Dataset不限定名称、不限定数量，每个Dataset包含的数据在每个维度上的个数
+  需要与Geometry中指定的数量一致。
+
+.. _section_mesh_block:
+
+网格模块输入卡
+--------------
+
+.. code-block:: none
+
+  MESH
+  MeshInfo <id> [type=<type>] [filename=<filename>]
+  [datasetname=<datasetname>]
+
+其中，
+
+-  **Mesh**\ 是模块关键词；
+
+-  **MeshInfo**\ 是网格信息输入卡关键词；
+
+-  **id**\ 指定该网格的编号，此编号可用于栅元温度、栅元密度的输入等；
+
+-  **type**\ 指定该网格的类型，目前RMC仅支持均匀结构化网格，因此
+   需要固定\ **type=1**\ ；
+
+-  **filename**\ 指定网格文件的名称；
+
+-  **datasetname**\ 指定Dataset的名称。用户可在同一个网格文件中
+   定义多个Dataset，但每个MeshInfo仅能使用一个Dataset。
+
+网格模块输入示例
+------------------------
+
+.. code-block:: c
+
+  Mesh
+  MeshInfo 1 type=1 filename=Example1.h5 datasetname=Temperature
+  MeshInfo 2 type=1 filename=Example2.h5 datasetname=Temperature
+  MeshInfo 3 type=1 filename=Example2.h5 datasetname=Density
+
+上面的网格模块一共包含三个网格：第一个网格读取自Example1.h5文件，其数据来自
+Temperature数据集；第二个和第三个网格都读取自Example2.h5文件，其数据分别来自
+Temperature和Density数据集。。

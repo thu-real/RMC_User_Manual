@@ -1,0 +1,83 @@
+.. _section_ifp:
+
+反复裂变几率法计算
+================================
+
+RMC反复裂变法可以在临界和燃耗计算模式下计算动态参数和几何微扰系数，其中几何微扰
+系数仅用于连续能量截面，动态参数除此之外还可应用于多群截面。
+
+反复裂变几率法模块输入卡
+-----------------------------
+
+.. code-block:: none
+
+    Adjoint
+    blocksize=<param>
+    fisbranch=<param>
+    OUTPUTINTERVAL=<param>
+    kinetic
+    surface=<param>
+    cellmat=<param>
+    AdjointFluxMesh [Energy=<enenrgy>]  [Scope=<scope>] [Bound=<bound>]
+
+其中，
+
+-  **Adjoint**\ 为反复裂变几率法模块关键词；
+
+-  **blocksize**\ 指定多少活跃代为一个块，默认为10；
+
+-  **fisbranch**\ 指定每次裂变能产生几个裂变中子，默认为1，数值越大，反复裂变
+   几率法初始分配内存越大；
+
+-  **OUTPUTINTERVAL**\ 指定每多少代输出伴随计算结果，默认所有活跃代结束才输出；
+
+-  **kinetic**\ 计算动态参数关键词；
+
+-  **surface**\ 计算几何微扰系数对应面在Surf卡中编号；
+
+-  **cellmat**\ 通过面两侧栅元材料定位几何微扰系数对应面的部分区域，正数为Cell卡中
+   编号，负数为mat卡中编号。
+
+-  **AdjointFluxMesh**\ 为反复裂变几率法求解临界伴随通量输入卡的关键词。
+
+   -  **Energy**\ 选项卡指定伴随通量的能量分界点。
+
+   -  **Scope**\ 选项卡指定网格在x，y，z方向的数量。特别地，参数为“-1”表示该方向上
+      只有一层无限大网格 (注意：在Universe重复几何中的Scope选项卡当中，参数为1表示
+      该方向上只有一层无限大网格)。
+
+   -  **Bound**\ 选项卡指定网格在x，y，z方向的边界范围，形如“Bound = x_min
+      x_max y_min y_max z_min z_max”。若某方向只有一层网格，
+      \ **Bound**\ 选项卡中对应的参数没有实际意义。
+
+动态参数输出文件
+---------------------
+
+输出结果给出以下动态参数结果的平均值和标准差：有效中子代时间，单位为微秒；rossi-alpha，
+单位为1/微秒；有效缓发中子份额，单位为1。
+
+.. code-block:: none
+
+    ------------------ Current Cycle Number = 50 ------------------
+
+    ------------------ kinetic parameters, gen. time, rossi-alpha, beta-eff  ------------------
+                              Ave          std. dev.
+    gen. time    (us)    2.39916E+01     1.23582E+00
+    rossi-alpha (us-1)  -3.32090E-04     1.19101E-04
+    beta-eff             8.47770E-03     3.27803E-03
+
+几何微扰系数输出文件
+-------------------------
+
+输出结果给出几何微扰系数结果的平均值和相对标准偏差：输运项；散射和裂变项。
+总结果为两者之和，如实例中几何微扰系数为0.013019。
+
+.. code-block:: none
+
+    ------------------ Current Cycle Number = 300 ------------------
+
+    ------------------ geometrical perturbation parameters ------------------
+                              Ave          Re
+    transport:          2.74153E-04     5.18707E-01
+    scatter + fission:  1.27445E-02     8.43237E-01
+

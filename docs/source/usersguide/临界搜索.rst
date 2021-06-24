@@ -1,0 +1,176 @@
+.. _section_appendix:
+
+临界搜索（仅限企业版本）
+===========================
+
+
+RMC支持在临界和燃耗模式下临界搜索，包括材料的核素密度搜索和几何的面位置搜索。
+
+材料搜索模块输入卡
+-----------------------
+
+.. code-block:: none
+
+    CriticalitySearch
+    Materialsearch target=<param> error=<param> max=<maximum> perb=<differentialoperator id>
+    Differentialoperator <id> [cell=<cell_vector>] material=<mat id> nuclide=<nuc>
+        [estimator=<param>] [order=<param>] [sourceperb=<param>] [batchcycle=<param>]  [outputbycycle=<param>]
+
+
+其中，
+
+-  **CriticalitySearch**\ 为临界搜索模块关键词；
+
+-  **materialsearch**\ 为材料搜索输入卡，由于为单参数搜索，该输入卡使用次数不超过1；
+
+-  **target**\ 为搜索的目标keff值；
+
+-  **error**\ 为搜索的阈值，当target-error < keff+-keff_std < target+error时认为搜索完成；
+
+-  **max**\ 为最大搜索次数。在一次临界计算结束后，程序将进行参数搜索计算；
+   随后将使用搜索得到的参数继续进行临界计算-参数搜索-临界计算...循环直至满足收敛条件。
+   设置该参数是为了防止在极端情形下，程序无法收敛而陷入死循环的情况发生。
+   需要注意的是，在参数满足收敛条件之前，程序会关闭Tally计数。如果用户使用了Tally（计数器）功能，
+   程序将在参数收敛之后，重新打开Tally计数并再次执行临界计算（仅活跃代）。
+   因而，若\ **max = 1**\ 且没有开启Tally，则程序的计算过程为：临界计算-参数搜索-临界计算。
+   若\ **max = 1**\ 且开启了Tally，则程序的计算过程为：临界计算-参数搜索-临界计算-活跃代临界计算。
+   特别地，当用户指定\ **max = 0**\ 时，程序将仅做一次临界计算和一次搜索，且不会关闭Tally计数。
+
+-  **perb**\ 为搜索使用的微分算符法的id，对应于differentialoperator输入卡；
+
+-  **differentialoperator**\ 为微分算符法输入卡，支持多个同时使用，其后紧跟的id须不同；
+
+-  **cell**\ 为扰动栅元向量，层级输入格式和celltally中一致，缺省时仅material定位，否则cell和material采用与关系共同定位；
+
+-  **material**\ 为扰动材料在material卡中的id，不可缺省；
+
+-  **nuclide**\ 为扰动核素的zaid；
+
+-  **estimator**\ 扰动的keff估计器，0-碰撞估计器，1-吸收估计器，2-径迹长度估计器；注意:TMS模式下只能使用吸收估计器；估计器编号随版本有变动
+
+-  **order**\ 为扰动的最高阶数，1-一阶，2-二阶；
+
+-  **sourceperb**\ 是否使用源扰动，0-不使用（默认值），1-使用。使用源扰动计算更加精确，但同时耗时增加；
+
+-  **batchcycle**\ 为使用源扰动时batch中的代数，默认值为5；
+
+-  **outputbycycle**\ 是否每代输出微扰系数，0-仅最后一代输出（默认值），1-每代输出。
+
+材料搜索模块输入示例
+--------------------------
+
+以下算例为对栅元2材料2中第一个核素密度进行搜索，目标值为1，阈值为0.01，最大迭代次数为3，
+搜索方法为利用二阶微分算符法对keff碰撞估计器的微扰系数进行类牛顿迭代法，
+同时使用源扰动，batch代数为5，仅最后一代输出。
+
+.. code-block:: none
+
+    CRITICALITYSEARCH
+    materialsearch
+    max = 3
+    target = 1
+    error = 0.0
+    perb = 1
+    differentialoperator 1
+    cell = 2
+    material = 2
+    nuclide = 92235
+    estimator = 2
+    order = 2
+    sourceperb = 1
+    batchcycle = 5
+    outputbycycle = 0
+
+材料搜索输出文件
+----------------------
+
+材料搜索的信息在.critisearch文件中，包含各个微分算符法的一、二阶微扰系数及其相对标准偏差，
+临界迭代时当前keff和标准差，搜索核素原子密度在迭代前后的值，
+用-->分割。
+
+.. code-block:: none
+
+    Cycle  Perb   First_Ave   First_Re    Second_Ave  Second_Re
+    100    0      2.94622E-01 1.77817E-01 4.65745E-02 7.85989E+00
+    Iter   Nuc    keff                    Atom Density
+    0      1      0.968321 +- 0.007071    9.88665E-03 --> 1.09408E-02
+
+    Cycle  Perb   First_Ave   First_Re    Second_Ave  Second_Re
+    100    0      4.44978E-01 1.35197E-01 3.32123E-02 8.53374E+00
+    Iter   Nuc    keff                    Atom Density
+    1      1      0.987481 +- 0.009976    1.09408E-02 --> 1.12483E-02
+
+    Cycle  Perb   First_Ave   First_Re    Second_Ave  Second_Re
+    100    0      2.53745E-01 2.90857E-01 -4.64625E-02 3.47310E+00
+    Iter   Nuc    keff                    Atom Density
+    2      1      0.968038 +- 0.009095    1.12483E-02 --> 1.26652E-02
+
+    Cycle  Perb   First_Ave   First_Re    Second_Ave  Second_Re
+    100    0      3.13533E-01 1.80227E-01 -1.35241E-03 1.64309E+02
+    Iter   Nuc    keff                    Atom Density
+    3      1      0.973322 +- 0.010536    1.26652E-02 --> 1.37428E-02
+
+    Cycle  Perb   First_Ave   First_Re    Second_Ave  Second_Re
+    100    0      2.69473E-01 2.54405E-01 1.06923E-02 9.01484E+00
+
+几何搜索模块输入卡
+-----------------------
+
+.. code-block:: none
+
+    CriticalitySearch
+    Geometrysearch surface=<surf id> target=<param> error=<param> max=<maximum> method=<param> adaptive=<param>
+           leftbound=<param> rightbound=<param>
+
+
+其中，
+
+-  **CriticalitySearch**\ 为临界搜索模块关键词；
+
+-  **geometrysearch**\ 为几何搜索输入卡，由于为单参数搜索，该输入卡使用次数不超过1；
+
+-  **surface**\ 为搜索面的编号；
+
+-  **target**\ 为搜索的目标keff值；
+
+-  **error**\ 为搜索的阈值，当target-error < keff+-keff_std < target+error时认为搜索完成；
+
+-  **max**\ 为最大迭代次数，防止极端情形下无法收敛而陷入死循环；
+
+-  **method**\ 为搜索的数值迭代方法，0-利用反复裂变几率法（第13章）计算得到几何微扰系数进行牛顿法迭代，1-二分法，2-试位法，3-Ridder方法；
+
+-  **adaptive**\ 是否自适应调整活跃代代数，0-不使用，1使用；
+
+-  **leftbound**\ 为搜索面位置的左初值，搜索过程中小于该值即停止搜索；
+
+-  **rightbound**\ 为搜索面位置的右初值，搜索过程中大于该值即停止搜索，目标值应预估在左初值和右初值之间。
+
+几何搜索模块输入输出示例
+------------------------------
+
+几何搜索结果在.critisearch文件中，包含每次迭代步keff和标准差，Parameter为下一迭代步的搜索面位置，Cycle为当前迭代步所使用的总代数。
+
+以下示例中，搜索面1的位置在5cm到10cm之间，搜索目标值在0.99到1.01之间，使用自适应调整代数的Ridder迭代法。最后搜索面位置为8.74888cm，此时keff为1.001257+-0.001635。
+
+.. code-block:: none
+
+    Geometrysearch
+    surface=1
+    target=1
+    error=0.01
+    method=3
+    adaptive=1
+    leftbound=5
+    right=10
+
+.. code-block:: none
+
+    Final Keff: 1.001257      Standard Deviation: 0.001635
+
+    Iter   SurfId  keff                    Parameter      Cycle
+    0      1       0.602600 +- 0.000280    1.00000E+01    300
+    Iter   SurfId  keff                    Parameter      Cycle
+    1      1       1.115286 +- 0.000489    7.50000E+00    300
+    Iter   SurfId  keff                    Parameter      Cycle
+    2      1       0.876570 +- 0.001635    8.74888E+00    110
+

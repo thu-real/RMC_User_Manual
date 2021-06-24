@@ -1,0 +1,95 @@
+.. _section_fixedsource:
+
+固定源计算
+=================
+
+RMC支持固定源计算功能。固定源功能用于已知外中子源的情况下，计算系统内中子分布随
+空间、能量和时间的变化。固定源计算可分为稳态计算和含时计算两种，目前的RMC版本仅
+支持稳态计算功能。与此同时，RMC固定源功能可以使用多群和连续能量的ACE格式的中子
+截面数据。需要注意的是，稳态固定源计算仅适用于不含裂变核素的系统或者次临界的增殖系统。
+
+.. _section_fixedsource_particle:
+
+模拟粒子总数目
+---------------------
+
+.. code-block:: none
+
+    FixedSource
+    PARTICLE population=<N>  fission=<fN fP>
+
+
+
+其中，
+
+-  **FixedSource**\ 为固定源模块的关键词；
+
+-  **population**\ 指定固定源计算中使用的初始粒子数，N表示初始粒子数；
+
+-  **fission**\ 指定是否关闭裂变中子和光子，如果fN为0则表示关闭裂变中子，
+   如果fN为1则表示打开裂变中子，如果fP为0则表示关闭裂变光子，
+   如果fP为1则表示关闭裂变光子。
+
+.. _section_fixedsource_cutoff:
+
+截断条件
+----------------
+
+.. code-block:: none
+
+  FixedSource
+  CutOff [MaxLost=<maxLost>]
+         [MinWeight=<minWeightN minWeightP>]
+         [MaxWeight=<maxWeightP>]
+
+其中，
+
+-  **CutOff**\  为截断条件输入卡的关键词。
+
+-  **MaxLost**\ 选项卡指定程序允许丢失的最大粒子数，缺省值为 10。
+
+-  **MinWeight**\ 选项卡指定输运过程中的权重下限，**minWeightN**\ 指定中子的
+   权重下限，缺省值为0.25，**minWeightP**\ 指定光子的权重下限，缺省值为0.6。
+   - 在权窗减方差功能开启后，此处输入无效
+
+-  **MaxWeightP**\ 选项卡指定光子在输运过程中的权重上限，缺省值为1.4。
+
+.. _section_fixedsource_example:
+
+固定源模块输入示例
+-----------------------
+
+固定源释放10000个源中子。
+
+.. code-block:: c
+
+    UNIVERSE 0
+    cell 1   -1      mat = 1           // sphere inside
+    cell 2   1 & -2  mat = 1           // sphere middle
+    cell 3   2 & -3  mat = 2           // sphere outside
+    cell 4   3       mat = 0  void = 1
+
+    SURFACE
+    surf  1  so  10
+    surf  2  so  20
+    surf  3  so  30
+
+    MATERIAL
+    mat 1  -10.045   // Fuel
+        92235.71c   6.89220E-03
+        92238.71c   2.17104E-02
+        8016.71c    4.48178E-02
+    mat 2  -0.9     // Water
+        1001.71c   2.0
+        8016.71c   1.0
+    sab 2  HH2O.71t
+
+    FixedSource
+    particle population = 10000
+
+    EXTERNALSOURCE
+    Source 1 particle = 1 energy = 0.1 sphere = 0 0 0 0 5
+    
+    Tally
+    CellTally  5  type = 1  cell = 1 2  time=0 5.0e-8  1.0e-7  5.0e-7 1.0e-6
+    CellTally  6  type = 2  cell = 1 2  energy = 0 6.25E-7 20 time=0 5.0e-8  1.0e-7  5.0e-7 1.0e-6

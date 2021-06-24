@@ -1,0 +1,143 @@
+.. _section_pointburnup:
+
+点燃耗计算
+==============
+
+.. _section_pointburnup_intro:
+
+点燃耗计算概述
+-----------------------
+
+RMC的点燃耗模块是基于自主开发的适用于复杂燃耗系统的模块化程序DEPTH。DEPTH程序
+在数据库、算法和功能方面具有以下特点：
+
+（1）数据库方面，有机整合了ORIGEN-2和ORIGEN-S的燃耗数据库，具有较为全面的燃耗
+链信息。
+
+（2）算法方面，DEPTH包含线性子链方法（TTA）、切比雪夫有理逼近方法（CRAM）
+、求积组有理逼近法（QRAM）和拉盖尔多项式逼近法（LPAM）四种求解器。同时在程序实现
+上，充分利用燃耗矩阵的稀疏性，采用基于行列混合压缩存储稀疏矩阵的高斯消去法，大大优
+化了燃耗求解速度。
+
+（3）功能方面，支持衰变、定通量和定功率三种燃耗模式，可计算核密度、衰变热、放射性
+活度、反应率等物理量。同时，还支持计算某物理量的瞬时值和在燃耗步长内对时间的积分值。
+
+.. _section_pointburnup_cards:
+
+点燃耗模块输入卡
+------------------
+
+点燃耗模块的输入卡包括
+
+.. code-block:: none
+
+   Depletion
+   Convertlib <lib_type> <xs_data> <yield_data> <main_lib>
+   Decay <time>
+   Flux  <time>
+   Power <time>
+   Density <nuc_id> <nuc_den>
+   Solver <solver_type>
+   TTA <cutofffrac>
+   QRAM <qrad_n>
+   LPAM <Laguerre_a> <Laguerre_tao> <Laguerre_N>
+   Print <flag>
+   Radioactivity <flag>
+   AbsorpRate <flag>
+   FissionRate <flag>
+   DecayHeat <flag>
+   FluxPower <power_flag> <flux_flag>
+   Energy <neu_erg>
+
+   
+
+其中，
+
+-  **Depletion**\ 为点燃耗计算模块关键词。
+
+-  **Convertlib**\ 为数据库转换选项。 \ **Convertlib = 1**\ 表示\ **ORIGI
+   N-S**\ 数据库，\ **Convertlib = 1**\ 表示\ **ORIGIN-2**\ 数据库，后续
+   分别为\ **ORIGIN**\ 数据库的衰变数据库、产额数据库以及\ **RMC**\ 使用燃耗数
+   据库名称。鉴于RMC点燃耗功能使用自主的DepthMainLib燃耗数据库，无特殊需求，默认
+   不使用。
+
+-  **Decay/Flux/Power**\ 为点燃耗计算的模式，分别为衰变、定通量、定功率模式。
+   \ *输入的参数为点燃耗计算的时间，时间的单位由用户指定，分别为 \ **y, d, h, m, 
+   s**\ 分别代表年、日、时、分、秒。时间输入示例: \ **4y*10**\ 。意味着分10个时
+   间步，每个时间步4年进行计算。注：不支持使用不同的时间单位，如\ **1y2d3h**\ ,
+   同时也不支持不同时间步的输入， 如\ **1y*10 5d*5**\ 。
+
+-  **Density**\ 为所需计算的核素的信息，包括核素ID以及核素的密度。其中\ **nuc_den >
+   0**\ 表示原子密度，单位为10\ :sup:`24`\ 原子/cm\ :sup:`3`\ ；\ **nuc_den
+   < 0**\ 表示质量密度，单位为g/cm\ :sup:`3`\ 。注：核素ID请使用燃耗数据库中的
+   ID格式，如\ **10010 922350 922351**\ 其中最后一位表示是否是激发态。
+
+-  **Solver**\ 为燃耗方程求解方法， **Solver =
+   1**\ 表示线性子链法，\ **Solver =
+   2**\ （默认值）表示切比雪夫有理近似法，\ **Solver =
+   3**\ 表示求积组有理近似法，\ **Solver =
+   4**\ 表示拉盖尔多项式近似法。对于一般用户，建议使用缺省参数。
+
+   -  **TTA**\ 仅当\ **Solver = 1**\ 时使用，表示\ **TTA**\ 方法的阶段误差。
+
+   -  **QRAM**\ 仅当\ **Solver = 3**\ 时使用，为\ **QRAM**\ 方法的逼近阶数。
+
+   -  **LPAM**\ 仅当\ **Solver = 4**\ 时使用，为\ **LPAM**\ 方法的初始参数。
+
+-  **Print**\ 为点燃耗输出选项。 \ **Print = 0**\ 输出最后燃耗步的物理量值，
+   \ **Print = 1**\ 输出所有燃耗步的物理量的值。
+
+   -  **Radioactivity**\ 放射性活度，单位\ **Curi**\ ，\ **Radioactivity = 
+      0**\ （默认值）为不输出放射性活度，\ **Radioactivity = 1**\ 表示输出瞬态浓度，
+      \ **Radioactivity = 2**\ 表示输出燃耗步内的积分浓度。
+
+   -  **AbsorpRate**\ 中子吸收率，单位\ **n/s**\ ，\ **AbsorpRate = 
+      0**\ （默认值）为不输出中子吸收率，\ **AbsorpRate = 1**\ 表示输出瞬态浓度，
+      \ **AbsorpRate = 2**\ 表示输出燃耗步内的积分浓度。
+
+   -  **FissionRate**\ 裂变率，单位\ **fission/s**\ ，\ **FissionRate = 
+      0**\ （默认值）为不输出裂变率，\ **FissionRate = 1**\ 表示输出瞬态浓度，
+      \ **FissionRate = 2**\ 表示输出燃耗步内的积分浓度。
+
+   -  **DecayHeat**\ 衰变热，单位\ **Watt**\ ，\ **DecayHeat = 0**\ （默认值）
+      为不输出衰变热，\ **DecayHeat = 1**\ 表示输出瞬态浓度， \ **DecayHeat 
+      = 2**\ 表示输出燃耗步内的积分浓度。
+
+   注：瞬态浓度表示点燃耗计算结束时刻的浓度，积分浓度是对燃耗步长时间积分的浓度。
+
+-  **FluxPower**\ 表示是否使用通量、功率的平均值，\ **flux/power_flag = 0**\ 
+   （默认值）表示使用瞬时值，\ **flux/power_flag = 1**\ 表示使用平均值。
+
+-  **Energy**\ 表示中子能量。单位 \ **eV**\ 。 
+
+
+需要指出的是，在计算模式、求解器参数、输出选项等在使用时视需要而定，不需要可以不写。
+
+.. _section_pointburnup_example:
+
+点燃耗模块输入示例
+--------------------
+
+镎\ **Np**\ 点燃耗算例
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+镎\ **Np**\ 点燃耗算例中为衰变模式，燃耗时长为10\ :sup:`6`\ 年，初始核素密度为
+1*10\ :sup:`24`\ 原子/cm\ :sup:`3`\ ，使用\ **CRAM**\ 方法进行求解。
+
+｜
+
+.. code-block:: c
+  :caption: 镎\ **Np**\ 点燃耗输入
+  :name: Np_pointburnup_input
+
+  /// Np point burnup input file  ////
+  Depletion
+  Decay        100000y * 10
+  Density   932370  1         
+  SOLVER 2              
+  print  0                
+  Radioactivity   1        
+  AbsorpRate      1        
+  FissionRate     1       
+  DecayHeat       1    
+

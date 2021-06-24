@@ -1,0 +1,132 @@
+随机中子动力学
+=====================
+
+RMC支持中子点火概率、中子脉冲引发时间等随机中子动力学计算模拟功能,也支持直接模拟法中子动力学计算功能。
+
+随机中子动力学模拟时以中子链为单位，按照定义的时间步大小，模拟中子链随时间的演化特点，设定中子链自持的标准，计算统计中子的点火概率或者超临界系统的脉冲引发时间。
+
+随机中子动力学输入卡
+-------------------------
+
+.. code-block:: none
+
+     KINETICS
+     Particle  FissionChain=<fission_chain_number>  TimeStep=<time_step>
+               StochasticMode=<calculation_mode_option>
+               [MaxPopulation=<maximum_population>]  [Batch=<batch_number>]
+               [Lambda=<sponta_fission_rate>]  [Nu=<average_neutron_number>] 
+               [TerminateTime=<terminate_time>]  [TerminateFisRate=Terminate_fission_rate]
+               [ExpFisRate=<exponential_fission_rate>]  [TargetFisRate=<target_fission_rate>]
+               [InitSourceNum=<initial_neutron_number>] [PrecursorMode=<precursor_mode_option>]
+               [DecayTimeStep=<decay_timestep>] [CaptureMode=<capture_mode_option>]
+               [UseComb=<use_comb_method_option>] [ControlNum=<comb_control_number>]
+               [FissMultiplicity=<fission_multiplicity>] [SpontaFiss=<spontaneous_fission>]
+               [InitCriSrc=<initial_critical_source>]
+     TimeStep  Time=<t0 t1 t2 ... tn>  Step=<s1 s2 ... sn>
+     RNG       [Type = <type>] [Seed = <seed>] [Stride = <stride>]
+
+
+其中，
+
+-  **KINETICS**\ 为随机中子动力学关键词。\ **Particle**\ 卡定义中子链相关参数，
+   \ **TimeStep**\ 卡定义变时间步长的相关参数，\ **RNG**\ 卡定义随机数，和临界计算模块中的随机数定义卡的使用方法相同，这里不再赘述。下面分别介绍
+   \ **Particle**\ 卡和\ **TimeStep**\ 卡的使用方法。
+
+Particle 选项卡
+~~~~~~~~~~~~~~~~~~~~~~
+
+Particle卡指定随机中子动力学模拟时中子链的相关参数。
+
+-  **FissionChain**\ 指定模拟的中子链数目，需为正整数。
+-  **TimeStep**\ 中子链模拟时的时间步间隔，单位为s。
+-  **StochasticMode**\ 随机中子动力学计算模式选项，0为脉冲引发时间计算或者直接模拟法中子动力学计算模式，1为POI计算模式,默认为0。
+-  **MaxPopulation**\ 指定中子链模拟时的最大中子数，当中子链中的瞬发中子数超过该数目时，认为该中子链自持，停止该中子链的模拟。
+-  **Batch**\ 定义分组的数目，该卡在使用组统计法计算点火概率的不确定度时使用，默认不分组，即分组数目为1。
+-  **Lambda**\ 定义自发裂变源的裂变强度，单位为/s。
+-  **Nu**\ 定义自发裂变源的平均裂变中子数。
+-  **TerminateTime**\ 定义中子链模拟的终止时间，单位为s。
+-  **TerminateFisRate**\ 定义中子链模拟终止的裂变反应率，单位为/s。
+-  **ExpFisRate**\ 定义中子链模拟时开始指数增长的裂变反应率，超过该裂变率认为中子链已进入显著的指数增长阶段。
+-  **TargetFisRate**\ 定义中子链模拟时的外推目标裂变反应率，在静态超临界系统中，
+   可以根据定义的\ **ExpFisRate**\和\ **TargetFisRate**\指数外推出中子链裂变率达到\ **TargetFisRate**\的时间。
+-  **InitSourceNum**\ 定义初始中子源数量，在直接模拟法中子动力学计算模式中使用。
+-  **PrecursorMode**\ 缓发中子先驱核衰变模式，0为先驱核直接模拟(常用于脉冲引发时间计算模式)，1为先驱核强制衰变(常用于直接模拟法中子动力学计算模式)，默认为0。
+-  **DecayTimeStep**\ 缓发中子先驱核强制衰变的时间步(即每隔该时间步强制衰变一次)，默认为1ms，仅在先驱核强制衰变模式时有效。
+-  **CaptureMode**\ 处理辐射俘获反应的两种模式，0为直接模拟吸收，杀死粒子，1为隐伏获，默认为0。
+-  **UseComb**\ 是否开启梳子法，0为关闭，1为开启，默认为0。
+-  **ControlNum**\ 梳子法调整后的粒子数，仅在开启梳子法后有效，默认为10000。
+-  **FissMultiplicity**\ 是否开启裂变多重性，0为关闭，1为开启，默认为1。
+-  **SpontaFiss**\ 是否开启自发裂变，0为关闭，1为开启，默认为1。
+-  **InitCriSrc**\ 是否存在初始临界源(需要由准静态S模式计算，生成后缀为".KineticsInitSource"的源文件)，0为不存在，1为存在，默认为0。若存在，则初始源分布由给定文件确定，常用于直接模拟法中子动力学计算模式。
+
+
+TimeStep 选项卡
+~~~~~~~~~~~~~~~~~~~~~~
+
+TimeStep卡指定随机中子动力学模拟时动态时间步长的相关参数，用于动态系统（几何或材料随时间变化）。
+
+-  **Time**\ 指定时间区间边界，单位为s。
+-  **TimeStep**\ 每个时间区间内的时间步长，数目比时间区间边界的数目少1，单位为s。
+
+
+随机中子动力学模块输入示例
+-------------------------------
+
+-  中子点火概率计算使用示例
+
+.. code-block:: c
+
+    KINETICS
+    Particle  StochasticMode=1 FissionChain=1000 TimeStep=1e-9  MaxPopulation=1000 Batch=10
+
+
+该示例定义了中子点火概率的计算参数，计算模式为POI，模拟1000条中子链，共分成10组进行模拟和统计，模拟时的时间步大小为1纳秒（ns），每条中子链的瞬发中子数上限为1000。
+
+
+-  中子脉冲引发时间计算使用示例
+
+.. code-block:: c
+
+    KINETICS
+    Particle  StochasticMode=0 fissionchain=2  TimeStep=0.1  MaxPopulation=100000  lambda=200  
+              Nu=1  TerminateTime=300  TerminateFisRate=2.0e9  ExpFisRate=1e9
+              TargetFisRate=2.7e11
+    TimeStep  Time=0 10  300  Step=0.1 0.5
+
+
+该示例定义了中子脉冲引发时间的计算参数(未设置的参数均为默认参数设置)，计算模式为脉冲引发时间计算,模拟2条中子链，时间步为0.1s，每条中子链
+的最大瞬发中子数为100000，超过100000即认为中子脉冲引发成功，自发裂变源强为200次/s，
+每次自发裂变释放出的平均裂变中子数为1，每条中子链模拟的截止时间为300s，超过300s
+则中止该中子链的模拟，每条中子链的截止裂变率为2.0e9/s，超过该裂变率自动停止该条
+中子链的模拟，每条中子链开始指数增长的裂变反应率为1e9/s，超过该裂变率即认为该条
+中子链已进入显著的指数增长阶段，中子链模拟时的外推目标裂变反应率为2.7e11/s。该算
+例还定义了动态时间步长，此时\ **Particle**\卡中定义的时间步长失效，在0到10s
+之间，时间步长为0.1s，在10s到300s之间时间步长为0.5s。
+
+-  直接模拟法中子动力学计算使用示例1
+
+.. code-block:: c
+
+    Kinetics
+    particle  StochasticMode=0 UseComb=1 ControlNum=1000 InitSourceNum=1000 PrecursorMode=1  CaptureMode=1 
+              SpontaFiss=0 FissMultiplicity=0  FissionChain =10  TimeStep=0.000001 
+              MaxPopulation=1e12 TerminateTime=0.00001 
+
+
+该示例定义了直接模拟法中子动力学的计算参数，计算模式为直接模拟法中子动力学，使用梳子法，梳子法控制粒子数为1000，初始源中子数为1000，缓发中子衰变模式为强制衰变，辐射俘获模式为隐俘获，关闭自发裂变，关闭裂变多重性，模拟10条中子链，相当于分成10组进行模拟和统计，模拟时的时间步大小为0.000001s，每条中子链的中子数上限为1e12，模拟终止时间设置为0.00001s。
+
+-  直接模拟法中子动力学计算使用示例2
+
+.. code-block:: c
+
+    Kinetics
+    particle  StochasticMode=0 UseComb=1 ControlNum=100 InitCriSrc=1 PrecursorMode=1  CaptureMode=0 
+              SpontaFiss=0 FissMultiplicity=0 FissionChain = 4 TimeStep=1e-7 MaxPopulation=1e12 TerminateTime=1e-6   
+
+    Tally
+    CellTally 1 type = 1 cell = 1 time =0 1.0e-07 2.0e-07 3.0e-07 4.0e-07 5.0e-07 6.0e-07 7.0e-07 8.0e-07 9.0e-07 1.0e-06 
+    CellTally 2 type = 2 cell = 1 time =0 1.0e-07 2.0e-07 3.0e-07 4.0e-07 5.0e-07 6.0e-07 7.0e-07 8.0e-07 9.0e-07 1.0e-06 
+    CellTally 3 type = 3 cell = 1 time =0 1.0e-07 2.0e-07 3.0e-07 4.0e-07 5.0e-07 6.0e-07 7.0e-07 8.0e-07 9.0e-07 1.0e-06 
+
+
+该示例定义了直接模拟法中子动力学的计算参数，计算模式为直接模拟法中子动力学，使用梳子法，梳子法控制粒子数为100，采用初始临界源分布(需要有后缀为".KineticsInitSource"的源文件，并放置在与可执行文件同一目录)，缓发中子衰变模式为强制衰变，辐射俘获模式为直接模拟吸收，关闭自发裂变，关闭裂变多重性，模拟4条中子链，相当于分成4组进行模拟和统计，模拟时的时间步大小为1e-7s，每条中子链的中子数上限为1e12，模拟终止时间设置为1e-6s。并设置有通量，功率，裂变反应率三个计数器，并设置有时间分箱。

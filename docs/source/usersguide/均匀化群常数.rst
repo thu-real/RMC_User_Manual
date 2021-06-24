@@ -1,0 +1,400 @@
+均匀化群常数（仅限企业版本）
+=================================
+
+RMC具备群常数产生功能，可以进行组件或者栅元均匀化计算，为堆芯程序提供均匀化少群常数。
+
+目前RMC均匀化功能包含少群常数产生模块、并群并区模块、B1修正模块、SPH等效修正模块以及堆芯耦合接口模块；
+在随机介质输运的基础上具备随机几何均匀化少群常数产生功能。
+
+群常数模块输入卡
+-----------------------
+
+.. code-block:: none
+
+    GroupConstant
+    Universe =<UnivIndexU>
+    Energy=<ErgBin>
+    Wims=<Params>
+    Bone=<Params>
+    Equivalence=<EquivalenceMethod> <Params>
+    Hybrid=<Params>
+    Angular=<Params>
+    Volume=<Params>
+
+
+其中，
+
+-  **GroupConstant**\ 为均匀化群常数输入卡的关键词；
+
+-  **Universe**\ 为均匀化计算目标对象的空间ID，与CSG几何中的空间编号保持一致；
+
+-  **Energy**\ 为均匀化少群常数的能群结构，默认的能群结构为以0.625ev为分界能的2群结构，
+   用户也可以输入具体的能量值作为分界能进行能群划分。需要指出的是能群分界能以升序方式输入；
+
+-  **Wims**\ 关键词用来指示是否使用两步法来进行均匀化计算，默认开启，即Wims=1；
+   Wims=0表示一步法计算少群常数。其中默认细群结构采用69群WIMS能群结构；
+
+-  **Bone**\ 关键词表示是否进行B1修正处理。Bone=1表示开启，Bone=0表征不采用B1修正计算处理，B1修正针对单组件全反射模型，默认开启；
+
+-  **Equivalence**\ 关键词表示是否进行等效修正计算，Equivalence=0表示不使用等效修正；Equivalence=1表示计算组件不连续因子，
+   此时后面的<Paras>需要用户输入组件类型，1表示四边形组件，2表示六边形组件，目前软件仅支持四边形组件计算；Equivalence=2表示
+   超级均匀化处理，此时后面的<Paras>需要用户输入SPH的迭代次数；
+   注意: **SPH计算对单区域无效，单区域SPH因子为1。程序支持用户在Universe卡输入包含lattice结构的单个区域，此时程序在用户开启**
+   **SPH时会自动搜索包含的最上层lattice，并对其展开分别为每一个cell统计群常数，该扩展区域采用一步法，不进行B1修正。**
+   **若Universe卡输入多个区域，则SPH不会对这些区域进行展开。**
+   **SPH功能同时也会输出 <输入文件名_SPH.h5> 文件，里面包含每个区域的通量以及体积，**
+   **输入输出文件可以参考test目录下的 TwoFuelRod_SPH 以及 Assembly_SPH两个算例。**
+
+-  **Hybrid**\ 关键词表示针对不同的堆芯多群程序提供相应的均匀化少群常数，
+   当前仅支持\ **Hybrid=0**\ （默认值，表示不输出）
+   和\ **Hybrid=1**\ （表示产生多群蒙卡堆芯程序需要的少群常数，ACE格式）两个选项。
+   **注意：若该区域是开启SPH后扩展的均匀化子区域，则输出的多群文件为：<xs扩展区域用户空间编号_该区域在lattice的ID>；若是非扩展区域，则是：**
+   **<xs_区域用户空间编号>。**
+
+-  **Angular**\ 关键词与Hybrid=1相对应，表示角度信息，目前可以为多群蒙卡提供5阶角数据。Angular输入选项可以是：0,1,3,5。
+
+-  **Volume**\ 关键词表示每个组件的体积，用户需要输入每个组件的体积参数。若开启不连续因子功能，
+   此时volume内体积会用于组件体积计算，若没有给定体积，系统会自动计算组件体积。
+   注意\ **由于组件计算可以按照二维处理，因此此时的体积即组件截面积。该卡可以多次定义，但需要与universe卡的输入个数一致。**
+
+
+
+群常数模块输入示例
+----------------------------
+
+PWR燃料棒均匀化计算
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:numref:`pwrcell_homo` 是一个PWR的燃料棒，对PWR燃料棒进行均匀化计算的基本功能。
+
+该算例计算Universe=0的2群常数，将其输出到输出文件中。Energy=0.625E-06表示以0.625ev为分界能，
+计算两群常数。Wims=0表示直接一步法计算2群常数，Bone=0表示不采用B1修正处理。
+
+|
+
+.. code-block:: c
+  :caption: PWR燃料棒均匀化计算示例
+  :name: pwrcell_homo
+
+    ///////--- Pin definition : ////
+    Universe 0
+    cell 1      -1            mat=1  Tmp=600
+    cell 3      1&3&-4&5&-6   mat=3  Tmp=600
+    cell 4      -3:4:-5:6     mat=0 void=1  Tmp=600
+
+
+    Surface
+    surf 1 cz  0.412
+    surf 3 px  -0.665    bc=1
+    surf 4 px  0.665     bc=1
+    surf 5 py  -0.665    bc=1
+    surf 6 py  0.665     bc=1
+    surf 7 px  -21.42     bc=1
+    surf 8 px  21.42      bc=1
+    surf 9 py  -21.42     bc=1
+    surf 10 py 21.42      bc=1
+
+
+    Material
+    // --- Fuel (composition given in atomic densities):
+    mat 1 -10.045
+          92235.60c   6.89220E+20
+          92238.60c   2.17103E+22
+          8016.60c    4.48178E+22
+    //  --- Water (composition given in atomic densities):
+    mat 3  -0.7569   // moder lwtr 1001
+           1001.60c   5.06153E+22
+           8016.60c   2.53076E+22
+    //sab 3  lwtr.01t
+
+
+    Criticality
+    PowerIter Keff0=1.0 Population = 100 10 30
+    InitSrc Point = 0 0 0
+
+
+    GroupConstant
+    Universe = 0
+    Energy =0.625E-06   //2群
+    WIMS=0
+    BONE=0
+
+
+    Plot  ColorScheme=335   Continue-calculation=1
+    PlotID 2  Type = Slice   Color = Cell  Pixels= 1800 1800  Vertexes= -1 1 0  1 -1 0
+
+
+|
+
+随机几何均匀化计算
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+该算例是一个25*25的随机几何组件，每个栅元是一个随机介质芯块组成，其填充率为PF=5.068%。
+
+计算Universe=0的2群均匀化少群常数，少群结构以4.0ev为分界能，Wims=1表示采用两步法框架来计算该少群常数，
+细群结构为WIMS的69群能群结构。Bone=0表示该均匀化计算关闭B1修正功能，Hybrid=1表示产生多群蒙卡堆芯计算
+所需的截面输入文件，该文件命名为xs1,Angular=1表示为多群蒙卡堆芯程序计算1阶角数据来表征各向异性，Equivalence=0
+表示产生的2群常数不开启等效均匀化处理。
+
+|
+
+.. code-block:: c
+  :caption: 随机几何组件均匀化计算示例
+  :name: random_homo
+
+    ///////////// Array15 /////////////
+    Universe 0
+    cell 3 9&-10&11&-12&21&-22&17&-18  fill=1                          // Inside the Assembly
+    cell 4 -9:10:-11:12:-21:22:-17:18  mat=0  void=1
+
+    Universe 1 move=-32.13 -18.55 0 lat=2 pitch=1.7850 1.7850 scope=25 25 sita=60 fill=
+         6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6
+         6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6
+         6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6
+         6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6
+         6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6
+         6 6 6 6 6 6 6 6 6 6 6 6 2 2 2 2 2 2 2 2 6 6 6 6 6
+         6 6 6 6 6 6 6 6 6 6 6 2 2 2 2 2 2 2 2 2 6 6 6 6 6
+         6 6 6 6 6 6 6 6 6 6 2 2 2 2 2 2 2 2 2 2 6 6 6 6 6
+         6 6 6 6 6 6 6 6 6 2 2 2 3 2 2 2 3 2 2 2 6 6 6 6 6
+         6 6 6 6 6 6 6 6 2 2 2 2 2 2 2 2 2 2 2 2 6 6 6 6 6
+         6 6 6 6 6 6 6 2 2 3 2 2 2 2 2 2 2 3 2 2 6 6 6 6 6
+         6 6 6 6 6 6 2 2 2 2 2 2 2 2 2 2 2 2 2 2 6 6 6 6 6
+         6 6 6 6 6 2 2 2 2 2 2 2 3 2 2 2 2 2 2 2 6 6 6 6 6
+         6 6 6 6 6 2 2 2 2 2 2 2 2 2 2 2 2 2 2 6 6 6 6 6 6
+         6 6 6 6 6 2 2 3 2 2 2 2 2 2 2 3 2 2 6 6 6 6 6 6 6
+         6 6 6 6 6 2 2 2 2 2 2 2 2 2 2 2 2 6 6 6 6 6 6 6 6
+         6 6 6 6 6 2 2 2 3 2 2 2 3 2 2 2 6 6 6 6 6 6 6 6 6
+         6 6 6 6 6 2 2 2 2 2 2 2 2 2 2 6 6 6 6 6 6 6 6 6 6
+         6 6 6 6 6 2 2 2 2 2 2 2 2 2 6 6 6 6 6 6 6 6 6 6 6
+         6 6 6 6 6 2 2 2 2 2 2 2 2 6 6 6 6 6 6 6 6 6 6 6 6
+         6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6
+         6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6
+         6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6
+         6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6
+         6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6
+
+    Universe 3   // Guide Tubes
+    cell 24 -33&17&-18          mat=4        //water
+    cell 25 33&-34&17&-18       mat=3        // Cladding
+    cell 26 34&17&-18           mat=4
+
+    Universe 6
+    cell 31 -35&17&-18  mat=4
+    cell 32  35&17&-18  mat=4
+
+
+
+    Universe 2                        //Fuel Rods
+    cell 21 -30&17&-18    fill=10
+    cell 22 30&-31&17&-18  mat=2        // Helium Fill
+    cell 27 31&-32&17&-18  mat=3        // Cladding FeCrAl
+    cell 23 32&17&-18      mat=4
+
+
+
+    // TRISO Particles distribution using explicit model
+    Universe 10   lat = 4  MATRIC = 7 move = -0.6461 -0.6461 -176.5
+                        // PARTICLE = 12
+                        // PF = 0.35
+                        // RAD = 0.061
+                         RSA = 0
+                         TYPE = 2
+                         SIZE = 0.6461 353
+                        // BURNMESH=1 1 1
+
+
+    Universe 7
+    cell 66 -49    mat = 7
+
+    Universe 12
+    cell 60 -44 mat=1        tmp=900
+    cell 61 44&-45 mat= 5    tmp=900
+    cell 62 45&-46 mat= 6    tmp=900
+    cell 63 46&-47 mat= 7    tmp=900
+    cell 64 47&-48 mat= 8    tmp=900
+    cell 65 48 mat=7         tmp=900
+
+
+
+    GroupConstant
+    Universe = 0
+    Energy =4.0E-06
+    WIMS=1    // two stage homogenization
+    BONE=0    // basing on two-stage and using critical spectrum to rehomogenize the fine group XS
+    Hybrid=1   // Output xsout for mcnp_mg
+    Angular=1  // 1 for the default, as p1
+    Equivalence=0   //2 for SPH,  1 for DF  and 3 for SPE
+
+
+
+
+    Surface
+    surf 30 cz 0.6461
+    surf 31 cz 0.6546
+    surf 32 cz 0.71158
+    surf 33 cz 0.8043
+    surf 34 cz 0.8613
+    surf 35 cz 0.8925             // water reflector
+    surf 9  px  -13.4  bc=1
+    surf 10 px   13.4  bc=1
+    surf 11 p  -.5773502692 -1 0 -15.4536   bc=1
+    surf 12 p  -.5773502692 -1 0  15.4536   bc=1
+    surf 21 p   .5773502692 -1 0 -15.4536   bc=1
+    surf 22 p   .5773502692 -1 0  15.4536   bc=1
+    surf 13 px  -13.4  bc=1
+    surf 14 px   13.4  bc=1
+    surf 15 p  -.5773502692 -1 0 -15.4536  bc=1
+    surf 16 p  -.5773502692 -1 0  15.4536  bc=1
+    surf 19 p   .5773502692 -1 0 -15.4536  bc=1
+    surf 20 p   .5773502692 -1 0  15.4536  bc=1
+    surf 17 pz -176.5 bc=1
+    surf 18 pz  176.5 bc=1
+    surf 44 so  0.0450
+    surf 45 so  0.0525
+    surf 46 so  0.0555
+    surf 47 so  0.0590
+    surf 48 so  0.0610
+    surf 49 inf
+    surf 50 cz  16  bc=1
+    surf 61 py  -16
+    surf 62 py  16
+    surf 63 px  -16
+    surf 64 px  16
+
+
+    Material
+    mat 1 -12.95                       //UC
+      92235.30c 16.10097657
+      92238.30c 83.89902343
+    6000.30c  100
+    mat 2 -0.0022                    // Helium
+      2004.30c  1.0
+    mat 3  1.7767103E-02            //FeCrAl
+      26054.30c  7.99520E-04
+      26056.30c  1.22593E-02
+      26057.30c  2.66507E-04
+      24052.30c  3.55342E-03
+      13027.30c  8.88356E-04
+    mat 4 -0.74    // Water
+      8016.30c  1.0
+      1001.30c  2.0
+    //sab 4  lwtr.62t
+    mat 5 -1.05
+      6000.30c    1.0
+    //sab 3 grph.65t
+    mat 6 -1.9
+      6000.30c    1.0
+    //sab 4 grph.65t
+    mat 7 9.55236E-02                   //SiC
+      6000.30c     4.77618E-02
+    // 14000.30c     4.77618E-02
+    //sab 5 grph.65t
+    mat 8 -1.1
+      6000.30c    1.0
+    //sab 4 grph.65t
+
+
+    Criticality
+    PowerIter keff0=1.0 population = 20 10 20
+    InitSrc point=0 0 0
+
+    PLOT  ColorScheme=3     Continue-calculation=1
+    PlotID 1  Type = slice   Color = Mat  Pixels=9000 9000   Vertexes=-16 16 0  16 -16 0
+    PlotID 2  Type = Slice   Color = Cell  Pixels= 1800 1800  Vertexes= -1 22 0  22 -1 0
+
+
+|
+
+
+压水堆组件不连续因子计算
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+该算例是一个17*17的压水堆几何组件。
+
+计算Universe=0的2群均匀化少群常数，少群结构以4.0ev为分界能，Wims=1表示采用两步法框架来计算该少群常数，
+细群结构为WIMS的69群能群结构。Bone=0表示该均匀化计算关闭B1修正功能，Hybrid=1表示产生多群蒙卡堆芯计算
+所需的截面输入文件，该文件命名为xs1,Angular=1表示为多群蒙卡堆芯程序计算1阶角数据来表征各向异性，Equivalence=1
+表示计算组件的边不连续因子和角不连续因子，组件类型为四边形。
+
+|
+
+.. code-block:: c
+  :caption: 压水堆组件不连续因子计算示例
+  :name: pwr_df
+
+    ////////  PWR assembly ////////
+    UNIVERSE 0
+    CELL 1   -6 : 7 : -8 : 9   mat = 0   void = 1               // Assembly outside
+    CELL 2   6 & -7 & 8 & -9   mat = 0   Fill = 8               // Assembly inside
+
+
+    UNIVERSE 8  lat = 1  pitch = 1.26 1.26 1    scope = 17  17  1  fill =
+      1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+      1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+      1 1 1 1 1 3 1 1 3 1 1 3 1 1 1 1 1
+      1 1 1 3 1 1 1 1 1 1 1 1 1 3 1 1 1
+      1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+      1 1 3 1 1 3 1 1 3 1 1 3 1 1 3 1 1
+      1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+      1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+      1 1 3 1 1 3 1 1 3 1 1 3 1 1 3 1 1
+      1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+      1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+      1 1 3 1 1 3 1 1 3 1 1 3 1 1 3 1 1
+      1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+      1 1 1 3 1 1 1 1 1 1 1 1 1 3 1 1 1
+      1 1 1 1 1 3 1 1 3 1 1 3 1 1 1 1 1
+      1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+      1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+
+    UNIVERSE 1 move = 0.63 0.63 0                 // Fuel rod
+    cell  3   -1       mat = 1      inner = 1     // Fuel
+    cell  4   1 & -2   mat = 3      inner = 1     // Air
+    cell  6   2        mat = 5                    // water
+
+    UNIVERSE 3 move = 0.63 0.63 0                 // Guide tube
+    cell  11  -5       mat = 5      inner = 1     // water
+    cell  13  5        mat = 5                    // water
+
+    SURFACE
+    surf  1  cz   0.4096
+    surf  2  cz   0.4178
+    surf  3  cz   0.4750
+    surf  4  cz   0.5690
+    surf  5  cz   0.6147
+    surf  6  px   0         bc = 1
+    surf  7  px   21.42     bc = 1
+    surf  8  py   0         bc = 1
+    surf  9  py   21.42     bc = 1
+
+    MATERIAL
+    mat 1  -10.196
+           92235.71c   6.9100E-03
+           92238.71c   2.2062E-01
+           8016.71c    4.5510E-01
+    mat 3  -0.001
+           8016.71c    3.76622E-5
+    mat 5  9.9977E-02
+           1001.71c    6.6643E-02
+           8016.71c    3.3334E-02
+    //sab 5  HH2O.90t
+
+    CRITICALITY
+    PowerIter   population = 2000 20 50  // keff0 = 1.0
+    InitSrc point = 12 12 0
+
+
+    TALLY
+    SurfTally 1 type = 1  Surf = 6 area = 21.42 Energy = b1
+    SurfTally 1 type = 1  Surf = 9 area = 21.42 Energy = b1
+
+    GroupConstant
+    Universe = 0
+    Energy = 4E-06
+    WIMS=1
+    BONE=0
+    Hybrid=1  // Output xsout for mcnp_mg
+    Angular=1  //角分布变量阶数 1 for the default, as p1\n
+    EQUIVALENCE = 1 1    ///1:DF calculation 1: RECT type assembly
+    ///volume = 458.8164
