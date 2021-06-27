@@ -24,11 +24,11 @@ RMC包含三类计数器，分别是栅元计数器（cell tally）、网格计�
 
     CellTally <id> [Type = <type>] [Energy = <erg_bin>] [Filter = <params>]
               [Integral = <params>] [Cell = <cell_vector_group>] [Time = <time_bin>]
-              [Volume=<vol>] [Multiplier=<mul>] [Attenuator=<att>] [Dose=<dose>] 
+              [Volume=<vol>] [Multiplier=<mul>] [Attenuator=<att>] [Dose=<dose>]
 	          [Gaussian=<gaussian>] [Value=<val_bin>] [Segment=<seg_bin>]
               [Flag=<flag_bin>] [Nest=<nest>] [ReactionRate=<params>]
               [Source=<source_bin>]
-			  
+
 
 其中，
 
@@ -38,8 +38,9 @@ RMC包含三类计数器，分别是栅元计数器（cell tally）、网格计�
 
 -  **Type**\ 卡指定计数类型。\ **Type = 1**\ 表示栅元通量，
    \ **Type =2**\ 表示栅元功率，\ **Type = 3**\ 表示栅元裂变反应率，
-   \ **Type = 4**\ 表示栅元吸收反应率。\ **Type = 5**\ 表示裂变中子产生率，
-   \ **Type = 6**\ 表示中子或光子释热率，
+   \ **Type = 4**\ 表示栅元吸收反应率，\ **Type = 5**\ 表示裂变中子产生率，
+   \ **Type = 6**\ 表示中子或光子释热率，\ **Type = 7**\ 表示非弹性散射反应率，
+   \ **Type = 8**\ 表示弹性散射反应率。
    注意，这里所指的通量、功率、反应率等都是对栅元体积的积分量。
 
 -  **Energy**\ 选项卡指定分群计数的能量区间，参数为能量间隔点（Mev）。例如，

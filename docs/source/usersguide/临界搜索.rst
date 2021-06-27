@@ -1,4 +1,4 @@
-.. _section_appendix:
+.. _section_criticalitysearch:
 
 临界搜索（仅限企业版本）
 ===========================
@@ -120,7 +120,7 @@ RMC支持在临界和燃耗模式下临界搜索，包括材料的核素密度�
 
     CriticalitySearch
     Geometrysearch surface=<surf id> target=<param> error=<param> max=<maximum> method=<param> adaptive=<param>
-           leftbound=<param> rightbound=<param>
+           leftbound=<param> rightbound=<param> adjointtally=<param>
 
 
 其中，
@@ -144,6 +144,8 @@ RMC支持在临界和燃耗模式下临界搜索，包括材料的核素密度�
 -  **leftbound**\ 为搜索面位置的左初值，搜索过程中小于该值即停止搜索；
 
 -  **rightbound**\ 为搜索面位置的右初值，搜索过程中大于该值即停止搜索，目标值应预估在左初值和右初值之间。
+
+-  **adjointtally**\ 为利用反复裂变几率法（第13章）计算得到几何微扰系数进行牛顿法迭代时，对应的几何微扰计数器的编号
 
 几何搜索模块输入输出示例
 ------------------------------

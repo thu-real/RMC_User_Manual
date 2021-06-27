@@ -16,9 +16,8 @@ RMC反复裂变法可以在临界和燃耗计算模式下计算动态参数和�
     fisbranch=<param>
     OUTPUTINTERVAL=<param>
     kinetic
-    surface=<param>
-    cellmat=<param>
     AdjointFluxMesh [Energy=<enenrgy>]  [Scope=<scope>] [Bound=<bound>]
+    [GeoAdjointTally <param> surf=<param> type=<param> parameters=<param> constraint=<param> universe=<param> cellmat=<param> cutoffcos=<param>]
 
 其中，
 
@@ -33,11 +32,6 @@ RMC反复裂变法可以在临界和燃耗计算模式下计算动态参数和�
 
 -  **kinetic**\ 计算动态参数关键词；
 
--  **surface**\ 计算几何微扰系数对应面在Surf卡中编号；
-
--  **cellmat**\ 通过面两侧栅元材料定位几何微扰系数对应面的部分区域，正数为Cell卡中
-   编号，负数为mat卡中编号。
-
 -  **AdjointFluxMesh**\ 为反复裂变几率法求解临界伴随通量输入卡的关键词。
 
    -  **Energy**\ 选项卡指定伴随通量的能量分界点。
@@ -49,6 +43,22 @@ RMC反复裂变法可以在临界和燃耗计算模式下计算动态参数和�
    -  **Bound**\ 选项卡指定网格在x，y，z方向的边界范围，形如“Bound = x_min
       x_max y_min y_max z_min z_max”。若某方向只有一层网格，
       \ **Bound**\ 选项卡中对应的参数没有实际意义。
+
+   **AdjointFluxMesh**\ 为几何微扰输入卡的关键词。
+
+   -  **surf**\ 计算几何微扰系数对应面在Surf卡中编号；
+
+   -  **type**\ 几何形变类型。1：平移，2：均匀扩张，3：单向扩张，4：旋转；
+
+   -  **parameters**\.描述几何形变的参数。平移需要三个参数，即指向平移方向的归一化向量；均匀扩张不需要参数；单向扩张需要三个参数，即指向扩张方向的归一化向量；旋转需要7个参数，分别是旋转轴的归一化方向向量，旋转不动点的坐标，和旋转方向（符合右手定则为正1，不符合为负1）。
+
+   -  **constraint**\ 约束栅元。仅对约束栅元内的曲面进行扰动。输入格式通cell输入卡相同。
+
+   -  **universe**\ 约束栅元所在的空间。
+
+   -  **cellmat**\ 用于限制面的扰动部分，正数表示栅元，负数表示材料。均为程序内部编号。
+
+   -  **cutoffcos**\ 穿面余弦的截断值。
 
 动态参数输出文件
 ---------------------
