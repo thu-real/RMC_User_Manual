@@ -1,0 +1,26 @@
+.. _database_obtain:
+
+==========
+安装说明
+==========
+
+.. contents:: 目录
+
+获取数据库
+--------------
+
+RMC采用ACE格式中子反应截面数据库（同MCNP、OpenMC等），ACE截面库可利用 NJOY、RXSP
+等核数据处理程序由评价核数据库（如ENDF/B）加工制作而来。
+
+RMC程序包中，一般会提供基本中子截面库。如有进一步的需求，请联系我们（contact@reallab.org.cn 及
+https://forum.reallab.org.cn）。
+
+此外，可以从 `美国国家核数据中心`_ 查看或下载核数据，如基于ENDF/B-VII.1的
+`293.6K中子截面库`_ ， `300K中子截面库`_ ， `热中子散射截面库`_ （均包含xsdir
+索引文件 ）。
+
+
+.. _美国国家核数据中心: http://www.nndc.bnl.gov/
+.. _293.6K中子截面库: http://www.nndc.bnl.gov/endf/b7.1/aceFiles/ENDF-B-VII.1-neutron-293.6K.tar.gz
+.. _300K中子截面库: http://www.nndc.bnl.gov/endf/b7.1/aceFiles/ENDF-B-VII.1-neutron-300K.tar.gz
+.. _热中子散射截面库: http://www.nndc.bnl.gov/endf/b7.1/aceFiles/ENDF-B-VII.1-tsl.tar.gz

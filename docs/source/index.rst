@@ -34,6 +34,7 @@ RMC的研发始于2001年，能够处理复杂几何结构、采用连续能量�
    :maxdepth: 1
 
    theory/index
+   compile/index
    install/index
    usersguide/index
    developguide/index
