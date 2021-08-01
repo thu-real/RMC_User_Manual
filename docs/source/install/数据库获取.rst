@@ -1,7 +1,7 @@
 .. _database_obtain:
 
 ==========
-安装说明
+数据库说明
 ==========
 
 .. contents:: 目录
@@ -20,7 +20,7 @@ https://forum.reallab.org.cn）。
 索引文件 ）。
 
 
-.. _美国国家核数据中心: http://www.nndc.bnl.gov/
-.. _293.6K中子截面库: http://www.nndc.bnl.gov/endf/b7.1/aceFiles/ENDF-B-VII.1-neutron-293.6K.tar.gz
-.. _300K中子截面库: http://www.nndc.bnl.gov/endf/b7.1/aceFiles/ENDF-B-VII.1-neutron-300K.tar.gz
-.. _热中子散射截面库: http://www.nndc.bnl.gov/endf/b7.1/aceFiles/ENDF-B-VII.1-tsl.tar.gz
+.. _美国国家核数据中心: https://www.nndc.bnl.gov/
+.. _293.6K中子截面库: https://www.nndc.bnl.gov/endf/b7.1/aceFiles/ENDF-B-VII.1-neutron-293.6K.tar.gz
+.. _300K中子截面库: https://www.nndc.bnl.gov/endf/b7.1/aceFiles/ENDF-B-VII.1-neutron-300K.tar.gz
+.. _热中子散射截面库: https://www.nndc.bnl.gov/endf/b7.1/aceFiles/ENDF-B-VII.1-tsl.tar.gz
