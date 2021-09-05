@@ -25,7 +25,7 @@ RMC包含三类计数器，分别是栅元计数器（cell tally）、网格计�
     CellTally <id> [Type = <type>] [Energy = <erg_bin>] [Filter = <params>]
               [Integral = <params>] [Cell = <cell_vector_group>] [Time = <time_bin>]
               [Volume=<vol>] [Multiplier=<mul>] [Attenuator=<att>] [Dose=<dose>]
-	          [Gaussian=<gaussian>] [Value=<val_bin>] [Segment=<seg_bin>]
+              [Gaussian=<gaussian>] [Value=<val_bin>] [Segment=<seg_bin>]
               [Flag=<flag_bin>] [Nest=<nest>] [ReactionRate=<params>]
               [Source=<source_bin>]
 
@@ -555,9 +555,9 @@ Source选项卡
     Source 1 xxx
     Source 2 xxx
 
-	Tally
-	CellTally  1  particle=1  type=1  cell=5  source=b1 
-	Bin 1 type=2 value=1 2
+    Tally
+    CellTally  1  particle=1  type=1  cell=5  source=b1
+    Bin 1 type=2 value=1 2
 
 这里CellTally将分别统计来自Source 1和Source 2的粒子对栅元通量的贡献。
 
@@ -752,7 +752,7 @@ Reactionrate选项卡
 -  **Source**\ 用于定义源分箱，即对抽样自某个源的粒子单独进行统计，仅用于固定源计算中，其
    用法和Celltally中相同。
 
--  **Nest**\ 用于定义分箱之间的嵌套，如输出能量分箱和余弦分箱之间的嵌套，其用法和celltally中相同。 
+-  **Nest**\ 用于定义分箱之间的嵌套，如输出能量分箱和余弦分箱之间的嵌套，其用法和celltally中相同。
 
 Surf选项卡
 ~~~~~~~~~~~~~~~~~~~~~~

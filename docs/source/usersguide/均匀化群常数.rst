@@ -1,3 +1,5 @@
+.. _section_group_contants:
+
 均匀化群常数（仅限企业版本）
 =================================
 
@@ -398,3 +400,4 @@ PWR燃料棒均匀化计算
     Angular=1  //角分布变量阶数 1 for the default, as p1\n
     EQUIVALENCE = 1 1    ///1:DF calculation 1: RECT type assembly
     ///volume = 458.8164
+

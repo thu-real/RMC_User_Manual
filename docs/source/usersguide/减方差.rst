@@ -1,3 +1,5 @@
+.. _section_variance_reduction:
+
 减方差
 ====================
 
@@ -43,3 +45,4 @@ imp:n=1，imp:n=2，imp:p=0，imp:p=1，imp:p=2，imp:e=0，imp:e=1，imp:e=2，
 
 -  注意，同一种粒子权窗卡只能同时使用一种。比如对于中子，\ **WWN:N**\ 和
    \ **WWMESH:N**\ 只定义其中的一个就可以。若\ **WWP:N**\ 没有定义，则为默认值。
+

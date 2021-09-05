@@ -93,3 +93,4 @@ RMC支持固定源计算功能。固定源功能用于已知外中子源的情�
     Tally
     CellTally  5  type = 1  cell = 1 2  time=0 5.0e-8  1.0e-7  5.0e-7 1.0e-6
     CellTally  6  type = 2  cell = 1 2  energy = 0 6.25E-7 20 time=0 5.0e-8  1.0e-7  5.0e-7 1.0e-6
+

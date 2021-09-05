@@ -1,5 +1,7 @@
-截面参数化功能
-================
+.. _section_xs_parameterize:
+
+截面参数化功能（仅限企业版本）
+=====================================
 
 截面参数化功能在群常数功能基础上开发，因此相关输入卡包含在群常数模块下。
 
@@ -93,10 +95,10 @@ Python输入卡中：
 .. figure:: media/multi_region.png
    :width: 4.5in
    :name: multi_region_fig
- 
-   
+
+
    六边形组件的多区域模型
-   
+
 
 上图为具体的几何模型。为了表示方便，我们对模型各个区域进行编号，如下图所示。
 
@@ -116,20 +118,20 @@ Python输入卡中：
 
     ////////////////////// GR5 ////////////////
     ////////////// sleeve : SiC
-    ////////////// Block bottom graphite, top He(save for future)  
+    ////////////// Block bottom graphite, top He(save for future)
     /////////////  graphite & SiC matrix & sleeve: 1ppm   TRISO: 0.5ppm
     /////////////  top and bottom block, only channels for coolant and CR rod
 
     //注意：由于采用燃耗区合并，因此该处体积需要给出的是所有小球的总体积，燃耗应该不会有较大影响，但功率会受影响\n
     //各个cell均需要给定温度，这里截面参数化需要温度一致\n
-    Universe 1 //move = 0.050319623 0.050319623 0.050319623    //triso 
-    cell 1 -1           mat = 1  tmp = 1000  vol = 7.5313E-01 //kernel 8.5% 
-    cell 2  1 & -2      mat = 2  tmp = 1000  vol = 1.0422E+00 //buffer      
-    cell 3  2 & -3      mat = 3  tmp = 1000  vol = 6.5565E-01 //IPyC        
-    cell 4  3 & -4      mat = 4  tmp = 1000  vol = 6.9737E-01 //SiC         
-    cell 5  4 & -5      mat = 5  tmp = 1000  vol = 9.5248E-01 //OPyC        
+    Universe 1 //move = 0.050319623 0.050319623 0.050319623    //triso
+    cell 1 -1           mat = 1  tmp = 1000  vol = 7.5313E-01 //kernel 8.5%
+    cell 2  1 & -2      mat = 2  tmp = 1000  vol = 1.0422E+00 //buffer
+    cell 3  2 & -3      mat = 3  tmp = 1000  vol = 6.5565E-01 //IPyC
+    cell 4  3 & -4      mat = 4  tmp = 1000  vol = 6.9737E-01 //SiC
+    cell 5  4 & -5      mat = 5  tmp = 1000  vol = 9.5248E-01 //OPyC
     cell 6  5           mat = 6  tmp = 1000  vol = 1.0000E-30 //SiC matrix
-                          
+
     Universe 2   lat = 4  MATRIC = 3  move = -1.1 -1.1 0.05
                 PARTICLE = 1
                 PF = 0.3//0.349631585
@@ -140,24 +142,24 @@ Python输入卡中：
             //DEM = 1  TIME = 0.1
 
     Universe 3
-    cell 14 -6    mat = 6  tmp = 1000 
+    cell 14 -6    mat = 6  tmp = 1000
 
     ///////// pellet /////
     Universe 4
-    cell 11 -14 & 16 & -19 & !12   mat =  7  tmp = 1000 vol = 1.6864E+00 //sleeve  
+    cell 11 -14 & 16 & -19 & !12   mat =  7  tmp = 1000 vol = 1.6864E+00 //sleeve
     cell 12 -13 & 17 & -18         fill = 2     vol= 13.6696       //fuel compact
     cell 13 14 : -16 : 19          mat =  8  tmp = 1000 vol = 3.4914E-01  //He
 
     Universe 16  // bottom
-    cell 7 -14  mat = 9  tmp = 1000 vol = 5.9496E+00 //graphite  
-    cell 8 14   mat = 9  tmp = 1000 vol = 1.3527E-01 //graphite 
+    cell 7 -14  mat = 9  tmp = 1000 vol = 5.9496E+00 //graphite
+    cell 8 14   mat = 9  tmp = 1000 vol = 1.3527E-01 //graphite
 
-    Universe 17  // top 
-    cell 9 -14  mat = 8  tmp = 1000 vol = 1.0000E-30  //He  
-    cell 10 14   mat = 8 tmp = 1000 vol = 1.0000E-30  //He 
+    Universe 17  // top
+    cell 9 -14  mat = 8  tmp = 1000 vol = 1.0000E-30  //He
+    cell 10 14   mat = 8 tmp = 1000 vol = 1.0000E-30  //He
 
     // 8 pellets
-    Universe 5 move = 0 0 -2.264 lat = 1   pitch = 1 1 3.696   scope = 1 1 10   fill = 16 4*8 17  
+    Universe 5 move = 0 0 -2.264 lat = 1   pitch = 1 1 3.696   scope = 1 1 10   fill = 16 4*8 17
 
     Universe 6  // fuel rod
     cell 15  -15 fill = 5       vol=131.73      //fuel
@@ -177,7 +179,7 @@ Python输入卡中：
     cell 102  62 & -63 & 67 & -68  mat = 15  tmp = 1000  vol = 4.712389
     cell 103  63 & -64 & 67 & -68  mat = 15  tmp = 1000  vol = 3.534292
     cell 104  64 & -65 & 67 & -68  mat = 15  tmp = 1000  vol = 1.178097
-    cell 105  ((65 & 67 & -68) : -67 : 68) & -66   mat = 8  tmp = 1000  vol = 5.898340 
+    cell 105  ((65 & 67 & -68) : -67 : 68) & -66   mat = 8  tmp = 1000  vol = 5.898340
     cell 106  66    mat = 9  tmp = 1000  vol = 185.314015
 
     Universe 41  rotate = -0.5 0.8660254 0 -0.8660254 -0.5 0 0 0 1 //BP1-2 r120
@@ -200,10 +202,10 @@ Python输入卡中：
 
     // block
     //lattice各个cell的体积在volume卡提供\n
-    Universe 9  move = -24 -13.85640646 0 
-         lat=2 scope= 9 9 sita = 60 pitch = 4 4 fill = //inner block 
+    Universe 9  move = -24 -13.85640646 0
+         lat=2 scope= 9 9 sita = 60 pitch = 4 4 fill = //inner block
              7 * 9
-             7  7  7  7  7  6  6  41 7 
+             7  7  7  7  7  6  6  41 7
              7  7  7  6  6  8  6  6  7
              7  7  6  8  6  6  8  6  7
              7  40 6  6  8  6  6  7  7
@@ -216,7 +218,7 @@ Python输入卡中：
     //cell体积需要提供均匀化区域包含的所有层级的cell，体积可以是真实的也可以是相对的\n
     cell 27  31 & -32 & -33 & 34 & 35 & -36        fill =  9      vol=498.8452656  //outer block
     cell 28  -31 : 32 : 33 : -34 : -35 : 36        mat =  8   tmp = 1000 vol = 8.348729792  //He 1mm
-    /////// a block end 
+    /////// a block end
 
     Universe 11
     cell 29  31 & -32 & -33 & 34 & 35 & -36        fill =  9     vol=498.8452656         //outer block
@@ -231,14 +233,14 @@ Python输入卡中：
 
 
 
-    Universe 73 //move = 24.2 0 0 
+    Universe 73 //move = 24.2 0 0
     cell 60 -40       mat = 8  tmp = 1000 vol=0.188495556//He
     cell 61 40 & -41  mat = 12 tmp = 1000 vol=0.146607655//inner cladding
-    cell 62 41 & -42  mat = 8  tmp = 1000 vol=0.08901179//He 
-    cell 63 42 & -43  mat = 11 tmp = 1000 vol=3.979350627//control rod 
-    cell 64 43 & -44  mat = 8  tmp = 1000 vol=0.184097326//He 
+    cell 62 41 & -42  mat = 8  tmp = 1000 vol=0.08901179//He
+    cell 63 42 & -43  mat = 11 tmp = 1000 vol=3.979350627//control rod
+    cell 64 43 & -44  mat = 8  tmp = 1000 vol=0.184097326//He
     cell 65 44 & -45  mat = 12 tmp = 1000 vol=0.64088489//outer cladding
-    cell 66 45        mat = 8  tmp = 1000 vol=1.939619271//He 
+    cell 66 45        mat = 8  tmp = 1000 vol=1.939619271//He
 
 
     Universe 21  //move = 24.2 0 0 ////shutdown contrl column
@@ -246,15 +248,15 @@ Python输入卡中：
     cell 67 46 & 31 & -32 & -33 & 34 & 35 & -36   mat = 9 tmp = 1000 vol=34.40237168  //core graphite
     cell 83 -31 : 32 : 33 : -34 : -35 : 36    mat = 8 tmp = 1000 vol=0.695727483 //He 1mm
 
-    Universe 30 lat=2 scope= 3 3 sita = 60 pitch = 24.2 24.2 fill = //inner block 
+    Universe 30 lat=2 scope= 3 3 sita = 60 pitch = 24.2 24.2 fill = //inner block
      13 10 13
      21 11 13
      12 13 13
 
 
     Universe 0
-    cell 90  69 & -70 & 71 & -72 & -73  fill = 30 vol=1.0 //core 
-    cell 92  -69: 70: -71 : 72 : 73    mat = 0 vol=1.0e-30  void = 1 
+    cell 90  69 & -70 & 71 & -72 & -73  fill = 30 vol=1.0 //core
+    cell 92  -69: 70: -71 : 72 : 73    mat = 0 vol=1.0e-30  void = 1
 
 
     SURFACE
@@ -265,12 +267,12 @@ Python输入卡中：
     surf 4   so   0.040272833   // SiC
     surf 5   so   0.043981974   // OPyC
     surf 6   inf
-    /// ----------pellet 
+    /// ----------pellet
     //surf 11 cz 0.30    //inner radius
     //surf 12 cz 0.35    //outer radius
     surf 13 cz 1.1     //pellet
     surf 14 cz 1.15    //sleeve radius
-    surf 15 cz 1.163   //fuel hole 
+    surf 15 cz 1.163   //fuel hole
     surf 16 pz 0
     surf 17 pz 0.05
     surf 18 pz 3.646
@@ -317,10 +319,10 @@ Python输入卡中：
     //surf 69 pz 0  bc=1
     //surf 70 pz 31  bc=1
     //surf 71 px 0  bc=1
-    //surf 72 px 12.1   
+    //surf 72 px 12.1
     //surf 73 p 1 1.732 0 24.2   bc=1
-    //surf 74 p 1 -1.732 0 -24.2 
-    //surf 75 p 1 1.732 0 -24.2 
+    //surf 74 p 1 -1.732 0 -24.2
+    //surf 75 p 1 1.732 0 -24.2
     //surf 76 p 1 -1.732 0 24.2 bc=1
 
 
@@ -328,74 +330,74 @@ Python输入卡中：
     MATERIAL
     //  -------kernel 8.5%---------
     mat 1  -10.4
-          5010.30c  -0.5000E-06  
-          8016.30c  -1.1855E-01  
-          8017.30c  -5.0406E-05  
-         92234.30c  -5.9058E-04  
-         92235.30c  -7.4919E-02  
+          5010.30c  -0.5000E-06
+          8016.30c  -1.1855E-01
+          8017.30c  -5.0406E-05
+         92234.30c  -5.9058E-04
+         92235.30c  -7.4919E-02
          92238.30c  -8.0589E-01
     //  ------buffer layer--------
     mat 2  -1.235294118
-         5010.30c  6.8467E-09  
+         5010.30c  6.8467E-09
          6000.30c  6.1936E-02
     //sab 2 Graph.71t
     //  -------IPyC layer---------
     mat 3  -2.235294118
-         5010.30c  1.2389E-08  
+         5010.30c  1.2389E-08
          6000.30c  1.1207E-01
     //sab 3 Graph.71t
     //  -------SiC layer----------
     mat 4  -3.741176471
-         5010.30c  2.0736E-08  
-         6000.30c  5.6189E-02 
+         5010.30c  2.0736E-08
+         6000.30c  5.6189E-02
         14028.30c  5.1823E-02
-        14029.30c  2.6313E-03  
+        14029.30c  2.6313E-03
         14030.30c  1.7346E-03
     //sab 4 Graph.71t
     //  --------OPyC layer--------
     mat 5   -2.235294118
-         5010.30c  1.2389E-08  
+         5010.30c  1.2389E-08
          6000.30c  1.1207E-01
-    //sab 5 Graph.71t    
+    //sab 5 Graph.71t
     //  ------SiC matrix----
     mat 6  -2.933721806
-         5010.30c  3.2520E-08  
-         6000.30c  4.4062E-02  
+         5010.30c  3.2520E-08
+         6000.30c  4.4062E-02
         14028.30c  4.0638E-02
-        14029.30c  2.0634E-03  
+        14029.30c  2.0634E-03
         14030.30c  1.3602E-03
     //sab 6 Graph.71t
     //  ------SiC sleeve-----
     mat 7  -3.18
-         5010.30c  3.5251E-8  
-         6000.30c  4.7761E-2  
+         5010.30c  3.5251E-8
+         6000.30c  4.7761E-2
         14028.30c  4.4050E-2
-        14029.30c  2.2366E-3  
+        14029.30c  2.2366E-3
         14030.30c  1.4744E-3
     //sab 7 Graph.71t
     //  ------helium coolant------
     mat 8  -1.6361E-4
-         2003.30c  3.3724E-11  
+         2003.30c  3.3724E-11
          2004.30c  2.4616E-5
     //  ------IG-110 graphite-----
     mat 9  -1.7512
-         5010.30c  1.9412E-8  
+         5010.30c  1.9412E-8
          6000.30c  8.7804E-2
     //sab 9 Graph.71t
     //  ------control rod natural B4C---------
     mat 11  -2.5
-         5010.30c  2.1579E-02  
-         5011.30c  8.7406E-02  
+         5010.30c  2.1579E-02
+         5011.30c  8.7406E-02
          6000.30c  2.7246E-02
     //sab 11 Graph.71t
     //  -------alloy 800H---------
     mat 12  -8.03
-        6000.30c  3.2210E-4  
-        13027.30c  6.7209E-4  
-        14028.30c  5.5580E-4  
-        14029.30c  2.8222E-5  
-        14030.30c  1.8604E-5  
-        15031.30c  3.1225E-5  
+        6000.30c  3.2210E-4
+        13027.30c  6.7209E-4
+        14028.30c  5.5580E-4
+        14029.30c  2.8222E-5
+        14030.30c  1.8604E-5
+        15031.30c  3.1225E-5
         16032.30c  1.4325E-5
         16033.30c  1.1311E-7
         16034.30c  6.4094E-7
@@ -404,32 +406,32 @@ Python输入卡中：
         22047.30c  2.8186E-5
         22048.30c  2.7928E-4
         22049.30c  2.0495E-5
-        22050.30c  1.9624E-5  
-        24050.30c  8.4860E-4  
-        24052.30c  1.6364E-2  
-        24053.30c  1.8556E-3  
-        24054.30c  4.6189E-4  
-        25055.30c  8.8022E-4  
-        26054.30c  2.2265E-3  
-        26056.30c  3.4951E-2  
-        26057.30c  8.0717E-4  
-        26058.30c  1.0742E-4  
-        28058.30c  1.8229E-2  
-        28060.30c  7.0217E-3  
-        28061.30c  3.0523E-4  
-        28062.30c  9.7320E-4  
-        28064.30c  2.4785E-4  
-        29063.30c  1.5791E-4  
-        29065.30c  7.0383E-5  
+        22050.30c  1.9624E-5
+        24050.30c  8.4860E-4
+        24052.30c  1.6364E-2
+        24053.30c  1.8556E-3
+        24054.30c  4.6189E-4
+        25055.30c  8.8022E-4
+        26054.30c  2.2265E-3
+        26056.30c  3.4951E-2
+        26057.30c  8.0717E-4
+        26058.30c  1.0742E-4
+        28058.30c  1.8229E-2
+        28060.30c  7.0217E-3
+        28061.30c  3.0523E-4
+        28062.30c  9.7320E-4
+        28064.30c  2.4785E-4
+        29063.30c  1.5791E-4
+        29065.30c  7.0383E-5
     // ------ Burnable Poison (Gd2O3 1%) -----
     mat 13  -1.71789
-         5010.30c  1.9043E-8  
+         5010.30c  1.9043E-8
          6000.30c  8.6134E-2
     //sab 13 Graph.71t
-    mat 15 -1.7  
+    mat 15 -1.7
          6000.30c  8.4383E-02
          8016.30c  8.4691E-05
-         8017.30c  3.3890E-08 
+         8017.30c  3.3890E-08
         64152.30c  1.1297E-07
         64154.30c  1.2144E-06
         64155.30c  8.3200E-06
@@ -438,7 +440,7 @@ Python输入卡中：
         64158.30c  1.4047E-05
         64160.30c  1.2370E-05
     //sab 15 Graph.71t
-    CeAce  OTFDB=1  OTFSab=0  pTable=0 DBRC=0  ErgBinHash=1  
+    CeAce  OTFDB=1  OTFSab=0  pTable=0 DBRC=0  ErgBinHash=1
 
     CRITICALITY
     PowerIter   population = 1000  10  15
@@ -446,7 +448,7 @@ Python输入卡中：
 
     GroupConstant
     //支持多个universe，该卡必须放在第一个位置
-    Universe = 10 11 12 13 21 
+    Universe = 10 11 12 13 21
     Energy = 4E-6//3.000000E-08 1.463700E-07 3.500000E-07 1.071000E-06 1.855390E-06 9.118820E-03 8.208500E-01
     WIMS=0  //采用两步法，细群69群结构，并群后采用energy结构，因此energy结构需要包含于wims结构中\n
     BONE=0  //采用b1修正\n
@@ -460,21 +462,21 @@ Python输入卡中：
     //注意：该卡可以多次定义，但需要与universe卡的输入个数一致\n
     //卡片给出顺序和universe卡的universe对应
     //volume卡5行数据
-    //第一行第一个为总体积（真实体积），用于sph计算\n     
+    //第一行第一个为总体积（真实体积），用于sph计算\n
     //1-3 //4-5 //6-7 //8-9 //axial
     volume = 7732 0*20 71.59 0*6
                   0*2 4.2955E+02 2.1477E+02 0*6 2.1477E+02 4.2955E+02*2 2.1477E+02 0*4
                   0 4.2955E+02*4 2.1477E+02 0*3 1.4318E+02 4.2955E+02*5 71.59 0*2
-                  0 2.1477E+02 4.2955E+02*2 2.1477E+02 0*6 1.4318E+02 0*6 
+                  0 2.1477E+02 4.2955E+02*2 2.1477E+02 0*6 1.4318E+02 0*6
                   0 3.696*8 1.432
     volume = 1.5464E+04 1.0E-30*6 1.4318E+02 1.0E-30*6 2.1477E+02 4.2955E+02*2 2.1477E+02 1.0E-30*3 1.4318E+02 4.2955E+02*5 1.4318E+02
                                      1.0E-30*2 4.2955E+02*6 1.0E-30*2 2.1477E+02 4.2955E+02*5 2.1477E+02 1.0E-30*2 4.2955E+02*6 1.0E-30*2
                                      1.4318E+02 4.2955E+02*5 1.4318E+02 1.0E-30*3 2.1477E+02 4.2955E+02*2 2.1477E+02 1.0E-30*6 1.4318E+02
-                                     1.0E-30*6 0 3.696*8 1.432 
+                                     1.0E-30*6 0 3.696*8 1.432
     //volume卡5行数据
-    //第一行第一个为总体积（真实体积），用于sph计算\n                 
+    //第一行第一个为总体积（真实体积），用于sph计算\n
     //81个数据的结构：
-    //1-2 //3-4 //5-6 //7-9 
+    //1-2 //3-4 //5-6 //7-9
     //10个axial数据
     //注意：volume卡内部不要加注释，数据太多可以分行写数据\n
     volume = 7732 0*6 1.4318E+02 0*6 2.1477E+02 4.2955E+02*2 2.1477E+02 0
@@ -524,7 +526,7 @@ Python输入卡中：
     //可以考虑把截断的燃耗区替换为非燃耗结构\n
     BURNUP
     BurnCell    1 100 101 102 103 104 110 111 112 113 114 120 121 122 123 124
-    TimeStep    10 20// 
+    TimeStep    10 20//
     Power       17.98162286*2
     Substep     10
     Inherent    0.9999
@@ -535,7 +537,7 @@ Python输入卡中：
     Merge  7 2  //燃耗区合并功能，(level /universe) 0->30->10/11/12->9->6->5->4->2(7层)，注意，这里必须让10,11,12是同一层，否则出错\n
 
     //Plot ColorScheme=9  Continue-calculation=0
-    //PlotID 1 Type = slice Color = mat Pixels=5000 5000 Vertexes=10  -8 5  60.5 60  5    
+    //PlotID 1 Type = slice Color = mat Pixels=5000 5000 Vertexes=10  -8 5  60.5 60  5
     //PlotID 2 Type = slice Color = mat Pixels=4000 4000 Vertexes= 20  -8 -1  20 60 32
     //PlotID 3 Type = slice Color = cell Pixels=4000 8000 Vertexes=23  -1 5  24 1  5
 

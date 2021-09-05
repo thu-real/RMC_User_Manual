@@ -1,3 +1,5 @@
+.. _section_conti_surf:
+
 接续面源
 ====================
 
@@ -51,3 +53,4 @@ RMC支持接续面源计算文件输出功能。接续面源计算，用于将�
 
     BinaryOut
     SurfSrcWrt    surf = 1(-2 3) cel =2 symm=0 Partype = 0 1
+

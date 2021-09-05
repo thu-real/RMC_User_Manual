@@ -1,3 +1,5 @@
+.. _section_transport_mode:
+
 中子输运计算
 ====================
 
@@ -144,3 +146,4 @@ RMC目前支持中子-光子-电子耦合输运计算
     Electron  MaxEnergy=100  MinEnergy=1.0E-3  EPRODUCEP=1  ErgLossStraggle=1  BREMS=1
               BREMSANGLE=1  BREMSEACHSUBTEP=0  BREMSERGLOSSMETHOD=1  BREMSPHOTONMULTITIMES=1.0
               XRAYMULTITIMES=1.0  KNOCKONMULTITIMES=0.0
+

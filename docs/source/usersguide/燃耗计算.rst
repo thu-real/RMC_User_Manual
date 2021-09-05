@@ -59,7 +59,7 @@ ORIGEN-2的最新点燃耗数据库。
              step = s2 surf = s2_1 s2_2 ... s2_n newsurf = news2_1 news2_2 ... news2_n
              ...>
     MERGE <level> <universe>
-    SUCCESSION [Singlestep = <flag>] [ReadNuc = <flag>] [WriteNuc = <flag>] 
+    SUCCESSION [Singlestep = <flag>] [ReadNuc = <flag>] [WriteNuc = <flag>]
                [FMF = <param>] [CumulativeTime = <param>] [CumulativeBurnup = <param>]
                [CellCmltvBurnup = <flag>]
     NAECF <energy>
