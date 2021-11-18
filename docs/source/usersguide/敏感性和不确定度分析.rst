@@ -6,7 +6,7 @@
 三明治法敏感性和不确定度计算
 ----------------------------------
 
-keff敏感性分析采用反复裂变几率法，可以用在传统的幂迭代方法以及超历史方法。广义敏感性分析采用碰撞历史法。如果需要进行不确定度计算，需要先执行敏感性计算。需要协方差索引文件“covdir”，以及covdir目录中指向的协方差数据库。
+keff敏感性分析采用反复裂变几率法，可以用在传统的幂迭代方法以及超历史方法。广义敏感性分析采用碰撞历史法、GEAR-MC方法和新GPT公式法。如果需要进行不确定度计算，需要先执行敏感性计算。需要协方差索引文件“covdir”，以及covdir目录中指向的协方差数据库。
 
 敏感性分析
 ~~~~~~~~~~~~~~~~~~~
@@ -28,8 +28,7 @@ keff敏感性分析的输入示例：
     OUTPUTTOTALSEN <flag>
 
 
-广义敏感性分析的输入示例：
-
+广义敏感性分析的输入示例(碰撞超历史法，可分析反应率之比和动态参数对核数据)：
 
 .. code-block:: none
 
@@ -45,6 +44,72 @@ keff敏感性分析的输入示例：
     Uncertainty
     OUTPUTINTERVAL <Number>
     Cell = <Number>
+
+广义敏感性分析的输入示例(超历史GEAR-MC法，可分析反应率之比对核数据)：
+
+.. code-block:: none
+
+    Adjoint
+    GENERAL
+	BlockSize <Number>
+	GPTMETHOD <Number>
+	ResponseNu <zaid.xxx> 	<zaid.xxx>
+    ResponseMT = <reaction_list_1, reaction _list_2>
+    Ratio = <ratio_list_1, ratio _list_2>
+    Nuclide  <zaid.xxx>   ……
+    Reaction= <reaction_list_1, reaction _list_2, …>   ……
+    Constrain <flag_1, flag_2, flag_3,…>
+	groupoption <Number>
+    Uncertainty
+    OUTPUTINTERVAL <Number>
+    Cell = <Number>
+
+广义敏感性分析的输入示例(EGEAR-MC法，可分析反应率之比对几何参数)：
+
+.. code-block:: none
+
+    Adjoint
+    GENERAL
+	GEOSENMETHOD <Number>
+	BlockSize <Number>
+	GPTMETHOD <Number>
+	ResponseNu <zaid.xxx> 	<zaid.xxx>
+    ResponseMT = <reaction_list_1, reaction _list_2>
+    Ratio = <ratio_list_1, ratio _list_2>
+    OUTPUTINTERVAL <Number>
+    Surface <Number>
+	Cell = <Number>
+
+广义敏感性分析的输入示例(超历史新GPT公式法，可分析反应率对核数据)：
+
+.. code-block:: none
+
+    Adjoint
+    GENERAL
+	BlockSize <Number>
+	GPTMETHOD <Number>
+	ReaRateType <Number>
+    Nuclide  <zaid.xxx>   ……
+    Reaction= <reaction_list_1, reaction _list_2, …>   ……
+    Constrain <flag_1, flag_2, flag_3,…>
+	groupoption <Number>
+    Uncertainty
+    OUTPUTINTERVAL <Number>
+    Cell
+	CellTallyID <Number> Cell =<Number>
+
+广义敏感性分析的输入示例(GPT-GE法，可分析反应率对几何参数)：
+
+.. code-block:: none
+
+    Adjoint
+    GENERAL
+	BlockSize <Number>
+	GEOSENMETHOD <Number>
+	ReaRateType <Number>
+    OUTPUTINTERVAL <Number>
+    Surface <Number>
+	Cell = <Number>
 
 随机抽样法扰动单一核素的输入示例：
 
@@ -84,6 +149,54 @@ keff敏感性分析的输入示例：
 
 
 -   **flag**\ 指定keff敏感性分析方法。\ **flag = 0**\ （缺省值）为传统的幂迭代方法，\ **flag = 1**\ 为超历史方法，其中超历史方法不支持OpenMP计算，广义敏感性分析无需开启此选项卡，几何微扰不支持超历史方法。
+
+
+.. code-block:: none
+
+   GPTMETHOD   <Number>
+
+其中，
+
+-   **GPTMETHOD**\ 为广义响应对核数据敏感性分析方法输入卡的关键词。
+
+
+-   **Number**\ 指定广义敏感性分析方法。\ **Number = 0**\ （缺省值）为碰撞超历史法，\ **flag = 1**\ 为超历史GEAR-MC方法，\ **flag = 2**\ 为超历史新GPT公式法，广义敏感性分析不支持OpenMP计算。
+
+
+.. code-block:: none
+
+   GEOSENMETHOD   <Number>
+
+其中，
+
+-   **GEOSENMETHOD**\ 为广义响应对几何参数敏感性分析方法输入卡的关键词。
+
+
+-   **Number**\ 指定广义响应对几何参数敏感性分析方法。\ **Number = 0**\ （缺省值）为不开启几何敏感性分析，\ **flag = 1**\ 为EGEAR-MC方法，\ **flag = 2**\ 为GPT-GE法，广义响应对几何参数敏感性分析不支持OpenMP计算。
+
+
+.. code-block:: none
+
+   Surface   <Number>
+
+其中，
+
+-   **Surface**\ 为广义响应对几何参数敏感性分析方法输入卡的关键词。
+
+
+-   **Number**\ 指定所分析的具体几何面索引。
+
+
+.. code-block:: none
+
+   ReaRateType   <Number>
+
+其中，
+
+-   **ReaRateType**\ 为广义敏感性分析方法输入卡的关键词。
+
+
+-   **Number**\ 指定广义响应中具体的反应率类型。\ **Number = 0**\ （缺省值）不代表任何反应率，\ **flag = 1**\ 为裂变反应率，\ **flag = 2**\ 为吸收反应率，\ **flag = 3**\ 为功率。
 
 
 .. code-block:: none
@@ -224,7 +337,17 @@ keff敏感性分析的输入示例：
 其中，
 
 
--	**Cell**\ 是栅元输入卡关键词。该选项卡用于定义广义响应函数的几何作用域。具体参见计数器的Cell选项卡。
+-	**Cell**\ 是栅元输入卡关键词。该选项卡用于定义反应率之比和伴随通量加权的反应率之比类型的广义响应函数的几何作用域。具体参见计数器的Cell选项卡。
+
+
+.. code-block:: none
+
+   CellTallyID = IDNumber
+
+其中，
+
+
+-	**CellTallyID**\ 该选项卡用于定义反应率类型的广义响应函数需要输出敏感性系数的几何区域编号。IDNumber为栅元计数器的编号，便于查阅输出，该选项需要与Cell选项卡联合使用，用于指定具体统计哪个栅元的敏感性系数。
 
 
 .. code-block:: none
