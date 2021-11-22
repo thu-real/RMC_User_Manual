@@ -1020,6 +1020,7 @@ VoVDeRateCheck、FoMValueCheck、FoMBehaviourCheck、PdfSlopeCheck；
 （4）一些基本统计参数的分组输出，包括Batches_of_Mean、Batches_of_Re、Batches_of_VoV、
 Batches_of_FOM。
 
+**注意：如果在计算过程中意外中断，则一些中间文件.TallyData会保留下来，用户需要手动将它们删除，否则会导致下一次统计检验计算报错。**
 
 计数器加速及计数器数据分解（仅限企业版本）
 -----------------------------------------------------
