@@ -1,0 +1,77 @@
+.. _section_neutron_coincidence_tally:
+
+中子符合计数（仅限企业版本）
+====================================
+
+RMC支持中子符合计数计算功能,基于固定源模式进行计算．具备自发裂变中子多样性（多重性）与诱发裂变中子多样性（多重性）的分析功能，可设置自发裂变类型的外中子源，或与其他类型中子源同时设置在同一个问题里面，可针对指定栅元中的指定核素以及输入预延时时间、门宽度等参数，给出中子与其发生反应的多样性数据，从而可得到中子符合计数的计算值。
+
+随机中子动力学输入卡
+-------------------------
+
+.. code-block:: none
+
+     FIXEDSOURCE
+     FissMult  zaid=<nuclide_ID>  method=<number> data=<number> shift=<number>
+
+     EXTERNALSOURCE
+     source    particle=<5>
+
+     TALLY     
+     celltally <id> particle=<1> cell=<cell_vector_group> cap=<capture_num> <nuclide_IDs> gate=<pre_delay_time gate_width> capmaxnum=<max_number> capmaxmoment=<max_number> normalization=<normal_style>
+      
+               
+
+
+其中，
+
+-  **FIXEDSOURCE**\ 为基于固定源模式进行，其他参数与固定源模式相同，这里不再赘述。\ **FissMult**\ 卡定义中子裂变多重性相关参数。
+   \ **EXTERNALSOURCE**\ 卡定义通用源，粒子类型为5代表自发裂变源，其他参数与固定源模式相同，这里不再赘述。\ **TALLY**\ 卡定义计数卡，这里未写出的参数的使用方法与计数部分说明相同，这里不再赘述。下面分别介绍
+   \ **FissMult**\ 卡和\ **celltally**\ 卡的使用方法。
+
+FissMult 选项卡
+~~~~~~~~~~~~~~~~~~~~~~
+
+FissMult卡指定中子裂变（包含自发裂变与诱发裂变）多重性的相关参数。
+
+-  **zaid**\ 新的多重性核素ID。
+-  **method**\ 高斯抽样算法: 0代表使用sine/cosine抽样方法; 1代表使用Lestone方法（匹配阶数）; 3代表使用Ensslin/Santi/Beddingfield/Mayo方法（1998-2004）; 默认为3。
+-  **data**\ 裂变抽样算法: 0代表使用有界整数裂变抽样; 1代表使用Lestone重估的核素相关的高斯宽度; 2代表使用核素相关的原始Terell高斯宽度; 3代表使用Ensslin/Santi/Beddingfield/Mayo高斯宽度; 默认为3。
+-  **shift**\ 修正平均裂变中子数的算法: 0代表每次裂变是一个整数; 1代表使用重估的高斯宽度来抽样裂变中子多重性; 2代表增加平均裂变中子数的阈值来使得多重性守恒; 3代表没有修正地抽样高斯分布(这将会造成高估); 4代表在自发裂变的情况下使用整数抽样; 默认为1。
+
+
+
+celltally 选项卡
+~~~~~~~~~~~~~~~~~~~~~~
+
+celltally卡可针对指定栅元中的指定核素以及输入预延时时间、门宽度参数。
+
+-  **particle**\ 指定符合计数粒子类型，只支持中子，类型为1。
+-  **cell**\ 要统计发生俘获反应的栅元。
+-  **cap**\ 符合计数的关键词，capture_num为统计符合计数的核素数量，后面写具体的核素ID: nuclide_IDs。
+-  **gate**\ 其中pre_delay_time为符合计数的预延迟时间，gate_width为符合计数的门宽度，单位均为s。
+-  **capmaxnum**\ 统计符合的最大数量，默认为21。
+-  **capmaxmoment**\ 统计阶的最大数量，默认为12。
+-  **normalization**\ 归一化方式；0为按照历史归一化，1为按照初始源中子总数归一化; 默认为0。
+
+中子符合计数模块输入示例
+-------------------------
+
+.. code-block:: none
+
+     FIXEDSOURCE
+     particle population=1000000
+     FissMult zaid=92235 method=3 data=3 shift=1
+
+     EXTERNALSOURCE
+     source 1 fraction=1 particle=5 position=0 0 0 energy=2.348
+     source 2 fraction=2 particle=1 position=0 0 0 energy=2.348
+
+     TALLY     
+     celltally 21  particle=1 cell=3 cap=3  6000  26056 12000 gate=100e-8  500e-8 capmaxnum=500
+     celltally 22  particle=1 cell=4 cap=1  2003  gate=200  800 capmaxnum=100 capmaxmoment=16 normalization=1
+      
+               
+
+该示例定义了中子符合计数的计算参数，计算历史数为1000000，裂变多重性设置为method=3 data=3 shift=1，有两个外源：一个自发裂变源与一个普通中子源，源强比例为1:2，设置了两个符合计数器，第一个统计的是3号栅元中的三种核素6000 26056 12000，预延迟时间为100e-8s，门宽度为500e-8s，最大符合数为500；第二个统计的是4号栅元中的一种核素2003，预延迟时间为200s，门宽度为800s，最大符合数为100，最大阶数为16，归一化方式按照初始源中子总数（因自发裂变源的存在，初始源中子总数!=总历史数）。
+
+
