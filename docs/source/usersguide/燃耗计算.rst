@@ -58,7 +58,7 @@ ORIGEN-2的最新点燃耗数据库。
     VarySurf <step = s1 surf = s1_1 s1_2 ... s1_n newsurf = news1_1 news1_2 ... news1_n
              step = s2 surf = s2_1 s2_2 ... s2_n newsurf = news2_1 news2_2 ... news2_n
              ...>
-    MERGE <level> <universe>
+    MERGE <level=l> <univ=u_1 u_2 ...>
     SUCCESSION [Singlestep = <flag>] [ReadNuc = <flag>] [WriteNuc = <flag>]
                [FMF = <param>] [CumulativeTime = <param>] [CumulativeBurnup = <param>]
                [CellCmltvBurnup = <flag>]
@@ -196,7 +196,7 @@ ORIGEN-2的最新点燃耗数据库。
    注意，被替换后，原有面的信息将完全丢失。
 
 -  **MERGE**\ 卡用于指定进行燃耗区合并的空间<universe>的几何层级<level>，
-   以及指定进行燃耗区合并的空间号<universe>。
+   以及指定进行燃耗区合并的空间号<univ>。
    注意：“Universe 0” 空间对应的几何层级level = 0，以此类推。燃耗区合并功能可以
    针对普通压水堆和随机介质模型。MERGE功能只能合并同一层级的多个Universe。
 
