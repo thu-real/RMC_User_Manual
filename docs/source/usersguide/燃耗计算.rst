@@ -47,7 +47,7 @@ ORIGEN-2的最新点燃耗数据库。
     SubStep <sub_num>
     Inherent <fraction>
     AceLib <lib_type>
-    Strategy <flag>
+    Strategy [type=<flag>] [substep=<flag>]
     Solver <flag>
     Parallel <flag>
     Xeequilibrium [Skip = <params>] [Batchsize = <params>] [Powermode = <params>] [Minratio = <params>]
@@ -110,11 +110,18 @@ ORIGEN-2的最新点燃耗数据库。
    被添加到栅元材料中并进行下一步的输运计算，否则会被筛选掉。在含多个温度值的燃耗计算中，
    RMC能够根据栅元温度自动匹配数据库，但目前版本暂不提供该功能。
 
--  **Strategy**\ 输入卡指定燃耗步策略。\ **Strategy =
-   0**\ （默认值）表示使用起点近似燃耗策略，\ **Strategy =
-   1**\ 表示使用预估-修正燃耗步策略，\ **Strategy =
-   2**\ 表示使用中点近似燃耗策略。通常只要设置合理的燃耗步长，起点燃耗策略能满足
-   大多数燃耗计算需求。
+-  **Strategy**\ 输入卡指定燃耗步策略关键词。
+
+   -  **Type**\ 输入卡指定开始更新氙浓度的代数。\ **type = 0**\ （默认值）表示使用起点近似
+      燃耗策略，\ **type = 1**\ 表示使用预估-修正燃耗步策略，该预估-修正策略基于燃耗计算中的核素
+      密度，\ **type = 2**\ 表示使用预估-修正燃耗步策略，该预估-修正策略基于燃耗计算中统计的反应率，
+      及单个燃耗区的单群中子通量和各核素的单群等效截面，该方法的效果与1相同，但修正思路有差异，
+      \ **type = 6**\ 表示使用高阶子步预估-修正燃耗策略。该策略是高阶方法和子步方法的结合，
+      通常使用较大燃耗步长就可以提供良好的计算精度，可以显著提高燃耗计算效率。
+
+   -  **Substep**\ 输入卡指定是否使用子步方法，\ **type = 0**\ （默认值）表示不使用子步方法，
+      \ **type = 1**\ （默认值）表示使用子步方法。需要注意的是，子步方法目前仅限于\ **type = 2**\ 
+      和 \ **type = 6**\ 两种燃耗策略。
 
 -  **Solver**\ 输入卡指定点燃耗方程求解方法。\ **Solver =
    1**\ 表示线性子链法，\ **Solver =
@@ -482,7 +489,7 @@ PWR组件燃耗算例
   Substep 10
   Inherent 0.9999
   AceLib .30c
-  Strategy 0
+  Strategy type=0
   Parallel 1
   Solver 2
   outputcell 1 > 1 > 3
@@ -680,7 +687,7 @@ cm。燃料组件为17×17结构，含264根燃料棒和25个水通道。根据U
   Substep 2
   Inherent 0.999 0.999
   AceLib .30c
-  Strategy 1
+  Strategy type=1
   Parallel 1
   Solver 2
 
@@ -712,7 +719,7 @@ cm。燃料组件为17×17结构，含264根燃料棒和25个水通道。根据U
     Substep     10
     Inherent    0.9999
     AceLib      .30c
-    Strategy    0
+    Strategy    type=0
     Parallel    1
     Solver      2
     MERGE       2 5
