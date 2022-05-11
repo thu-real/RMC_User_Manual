@@ -39,17 +39,20 @@ ORIGEN-2的最新点燃耗数据库。
 .. code-block:: none
 
     BURNUP
-    BurnCell < cell_1 cell_2 cell_3 … >
-    TimeStep <time_1 time_2 … time_n>
-    BurnupStep <burnup_1 burnup_2 … burnup_n>
-    Power <power_1 power_2 … power_n>
-    PowerDen <powerden_1 powerden_2 … powerden_n>
+    BurnCell < cell_1 cell_2 cell_3 ... >
+    ActivationCell < cell_1 cell_2 cell_3 ... >
+    TimeStep <time_1 time_2 ... time_n>
+    BurnupStep <burnup_1 burnup_2 ... burnup_n>
+    Power <power_1 power_2 ... power_n>
+    PowerDen <powerden_1 powerden_2 ... powerden_n>
+    SourceIntensity <source_1 source_2 ... source_n>
     SubStep <sub_num>
     Inherent <fraction>
     AceLib <lib_type>
     Strategy [type=<flag>] [substep=<flag>]
     Solver <flag>
     Parallel <flag>
+    DepleteMode <flag>
     Xeequilibrium [Skip = <params>] [Batchsize = <params>] [Powermode = <params>] [Minratio = <params>]
     OutputCell <cell_vector>
     VaryMat <step = s1 mat = m1_1 m1_2 ... m1_n newmat = new1_1 new1_2 ... new1_n
@@ -65,6 +68,8 @@ ORIGEN-2的最新点燃耗数据库。
     NAECF <energy>
     IMPNUC < nuc_1 nuc_2 ... nuc_n>
     FIXEDNUC <nuc_num>
+    Reactions nuclide=nuc1 mts=mt_1 mt_2 ... mt_n
+              nuclide=nuc2 mts=mt_1 mt_2 ... mt_n
 
 
 其中，
@@ -75,7 +80,11 @@ ORIGEN-2的最新点燃耗数据库。
    \ *输入的参数为简单栅元编号cell_i（而非层级栅元的向量形式）*\ 。程序将自动
    搜索所有底层栅元为cell_i的栅元向量，将它们视为独立的燃耗区。即每个燃耗栅元
    将自动展开生成独立的填充材料，即使它们的初始材料相同。自动展开独立燃耗区的
-   功能，对于含重复结构的燃耗计算十分重要，大大减少了用户的输入负担。
+   功能，对于含重复结构的燃耗计算十分重要，大大减少了用户的输入负担。燃耗栅元默认
+   定功率燃耗计算。
+
+-  **ActivationCell**\ 表示活化栅元，活化栅元的真实中子通量由燃耗功率分配过程
+   计算得出，采用定通量辐照计算。
 
 -  **TimeStep**\ 输入卡指定各个燃耗步的时间步长（天）。注意这里输入的是分步时间
    ，而非累积时间。
@@ -90,6 +99,9 @@ ORIGEN-2的最新点燃耗数据库。
 -  **PowerDen**\ 输入卡指定各个燃耗步的总功率密度（W/gHM）。程序将根据初始重金属的
    总质量得到实际总功率，并在每个燃耗步当中根据各燃耗区的功率分布得到每个燃耗区的实际功
    率。为计算初始重金属总质量和功率分布，用户应为燃耗栅元指定正确的体积。
+
+-  **SourceIntensity**\ 输入卡指定各个燃耗步的中子源强（n/cm2s）。程序将根据蒙卡统计的
+   中子通量分布，计算出每个燃耗区在该源强下的真实中子通量，从而进行定通量辐照计算。
 
 -  **SubStep**\ 输入卡指定点燃耗计算的步数（范围1 - 9999），缺省值为10步。对
    于一般用户，不推荐使用该输入卡修改默认参数。
@@ -175,9 +187,9 @@ ORIGEN-2的最新点燃耗数据库。
    在第四步将4、5号材料分别替换成23、33号材料。
    注意，被替换后，原有材料的信息将完全丢失。
 
--  **VarySurf**\ 卡用于在燃耗计算中在指定燃耗步计算之前替换面。
-    如step=1, 程序会在第一次燃耗计算结束后变换面。需要注意的是，需要谨慎使用变表面功能，
-    用户需要确认更换的新的面仍然在所在模型内，避免出现模型表面不闭合导致粒子缺失的情况。
+-  **VarySurf**\ 卡用于在燃耗计算中在指定燃耗步计算之前替换面。如step=1, 程序会在
+   第一次燃耗计算结束后变换面。需要注意的是，需要谨慎使用变表面功能，用户需要确认更换
+   的新的面仍然在所在模型内，避免出现模型表面不闭合导致粒子缺失的情况。
    
    -  **step**\ 选项指定要替换面的燃耗步编号，从0开始。
 
@@ -206,6 +218,11 @@ ORIGEN-2的最新点燃耗数据库。
    以及指定进行燃耗区合并的空间号<univ>。
    注意：“Universe 0” 空间对应的几何层级level = 0，以此类推。燃耗区合并功能可以
    针对普通压水堆和随机介质模型。MERGE功能只能合并同一层级的多个Universe。
+
+-  **DEPLETEMODE**\ 卡用于指定燃耗区的计算模式，\**DEPLETEMODE = 0**\表示纯衰变，
+   \**DEPLETEMODE = 1**\ 表示定通量计算，\**DEPLETEMODE = 2**\ 表示定功率计算
+   （默认)。需要注意的是，在输运-燃耗-活化耦合计算中，燃耗区默认采用定功率模式，活化区默认
+   采用定通量模式。
 
 -  **SUCCESSION**\ 此关键词下的所有选项全部为控制燃耗接续计算的高级选项，由RMC程序自动生成，
    或由脚本自动处理，不建议用户手动输入。
@@ -250,6 +267,21 @@ ORIGEN-2的最新点燃耗数据库。
    筛选过程中，程序会根据吸收反应率或核素密度（参考**Inherent**卡）对核素进行筛选，该卡会在达到
    指定数量后，抛弃剩下的核素，用于提高临界计算的速度。
 
+-  **Reactions**\ 表示需要统计某些核素的反应道的反应道。在燃耗计算中，默认统计(n,g), (n,2n), 
+   (n,3n), (n,f), (n,a), (n,p)在内的六种反应道截面，而在活化计算中，由于某些核素存在比较重要
+   的反应道，如Li6的(n,t)反应，需要对该种反应进行单独统计。
+
+   - **Nuclide**\ 表示核素的编号，如92235， 1001。
+
+   - **Mts**\ 表示反应道编号，如18((n,f))， 102((n,g)), 103((n,p)), 105((n,t))等
+
+   用户可按照上述选项，输入多个核素及对应的反应类型，从而实现不同核素多个反应道的截面统计功能.如：
+
+   .. code-block:: c
+      
+       Reactions nuclide=92235 mts=102 16 17 18
+               nuclide=3006 mts=102 16 107 103 105
+
 RMC燃耗计算时间项支持燃耗深度步长、时间步长输入，功率项支持总功率、功率密度输入各两种方式，
 时间项和功率项可以互相配合使用（但燃耗深度和时间步长，总功率和功率密度不能同时使用）。从
 实际的应用上来说，燃耗深度+总功率的输入方式更适用于反应堆全堆多循环计算。
@@ -274,7 +306,7 @@ PWR栅元燃耗算例
 PWR栅元燃耗算例只包含一个燃耗区，即栅元3，温度为293.6K。燃耗历史总计包括72个燃
 耗步，每个燃耗步的功率密度为30W/gHM，燃耗步长分别
 为“3.333333 13.333333 16.666667 33.333333\*69”天，对应的累积燃耗深度
-为“0.1 0.5 1.0 2.0 … 70.0”MWD/KgHM。
+为“0.1 0.5 1.0 2.0 ... 70.0”MWD/KgHM。
 
 |
 
