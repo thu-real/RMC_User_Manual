@@ -17,7 +17,7 @@ RMC反复裂变法可以在临界和燃耗计算模式下计算动态参数和�
     OUTPUTINTERVAL=<param>
     kinetic
     AdjointFluxMesh [Energy=<enenrgy>]  [Scope=<scope>] [Bound=<bound>]
-    [GeoAdjointTally <param> surf=<param> type=<param> parameters=<param> constraint=<param> universe=<param> cellmat=<param> cutoffcos=<param>]
+    GeoAdjointTally <param> surf=<param> type=<param> parameters=<param> constraint=<param> universe=<param> cellmat=<param> cutoffcos=<param>
 
 其中，
 
@@ -44,7 +44,7 @@ RMC反复裂变法可以在临界和燃耗计算模式下计算动态参数和�
       x_max y_min y_max z_min z_max”。若某方向只有一层网格，
       \ **Bound**\ 选项卡中对应的参数没有实际意义。
 
-   **AdjointFluxMesh**\ 为几何微扰输入卡的关键词。
+-  **GeoAdjointTally**\ 为几何微扰输入卡的关键词。
 
    -  **surf**\ 计算几何微扰系数对应面在Surf卡中编号；
 
