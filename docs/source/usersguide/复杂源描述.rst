@@ -35,6 +35,7 @@ RMC支持用户对源粒子的信息如粒子种类、初始位置、初始能�
      Distribution  <id>  [Depend = <id>]  Type = <flag>  Value= <params>
                    Probability = <params>  [Bias = <params>]
      Transformation  <id>  [Move=<x1 x2 x3>]  [Rotate=<a11 a12 a12 a21……a33>]
+     H5SourceInfo filename=<file> groupname=<group>
 
 
 
@@ -263,6 +264,74 @@ Cell选项卡中直接定义的栅元c_n的范围），则接受该抽样位置�
 （如果旋转和平移同时存在，则先以原点为中心进行旋转，再进行平移），填充到重复几何空间中，最后填充到基本空
 间（Universe 0）中的栅元4中，得到最终的抽样粒子位置和飞行方向等信息。
 
+**注意** Cell卡兼容MCNP风格的lattice格式，即采用三点式标注(x,y,z)，以3x3x2的四边形重复几何结构为例，如果
+Cell=4>3>8，相应的MCNP的展开式为4>(3 1 1)>8。但需要安装RMC的python模块。
+
+与此同时，在描述源位置信息时，如果需要定义一个基于底层CELL几何结构位置信息的均匀抽样源，则可以单独使用
+CELL卡（不使用Position, X, Y, Cyl等），程序将自动根据定义的栅元底层位置信息构建初始源位置。需要注意的是，
+目前基于CELL的初始源位置描述仅支持CELL的几何结构为球体/球壳（S, SO, SX, SY, SZ）,圆柱体/圆柱壳
+（CX, CY, CZ, C/X, C/Y, C/Z）,长方体。！！！注意，**底层CELL的组成面需要能够围成一个空间**，例如：
+
+.. code-block:: none
+
+     UNIVERSE 0
+     cell  1   1:-3:-4:5:6:-7  mat=0  void=1
+     cell  2   -2&3&4&-5&-6&7  mat=0  fill=1
+     cell  3   -1&2&4&-5&-6&7  mat=0  fill=2
+     
+     UNIVERSE 1  move=-50.004 -20.01 0 lat=1 pitch=16.668 13.34 1 scope=3 3 1 fill=3*9
+     
+     UNIVERSE 2  move=0 -20 0  lat=1 pitch=25 10 1  scope=2 4 1 fill=4 4 6 4 4 5 4 4
+     	
+     UNIVERSE 3  move=8.334  6.67 0
+     cell  6     21:-22:-23:24  mat=1 
+     cell  8     -21&22&23&-24  mat=2 
+     
+     UNIVERSE 4
+     cell  7     19   mat=1    
+     cell  11    -19  mat=2  
+     
+     UNIVERSE 5
+     cell  9     20&(31:-32:-33:34)&9  mat=1   
+     cell  12    -9   mat=1      
+     cell  13    -20&-6&7  mat=2    // 为了支持基于CELL的均匀源抽样，底层Cell要求能够独立构成空间  
+     cell  15    -31&32&33&-34  mat=2     
+     
+     UNIVERSE 6 move=5 0 0
+     cell  17     19   mat=1    
+     cell  21    -19  mat=2   
+     
+     SURFACE 
+     surf  1     px 50   bc=3 pair=3 //周期边界条件
+     surf  2     px 0    
+     surf  3     px -50  bc=3 pair=1 //周期边界条件
+     surf  4     py -20  
+     surf  5     py 20   
+     surf  6     pz 60   bc=2         //白边界条件
+     surf  7     pz -60  bc=2         //白边界条件
+     surf  9     s 5 5 3 .5
+     surf  11    px 8.334
+     surf  12    px -8.334
+     surf  13    py -6.67
+     surf  14    py 6.67
+     surf  15    px 25
+     surf  16    px 0
+     surf  17    py 0
+     surf  18    py 10
+     surf  19    c/z 10 5 3
+     surf  20    c/z 10 5 3
+     surf  21    px 4
+     surf  22    px -4
+     surf  23    py -3
+     surf  24    py 3
+     surf  31    px 20
+     surf  32    px 16
+     surf  33    py 3
+     surf  34    py 6
+     
+     EXTERNALSOURCE
+     Source 1 fraction=1 particle=1 energy=d1 cell=3>6>13 
+     distribution 1 type=-3 probability=1.4
 
 
 Distribution选项卡
@@ -466,6 +535,19 @@ Transforma卡定义源定义的坐标变换。ID为坐标变换的编号和Sourc
 平移变换向量。
 
 
+
+H5SourceInfo选项卡
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: none
+
+     H5SourceInfo filename=<file> group=<group>
+
+
+H5SourceInfo卡表示从HDF5文件中生成初始源。其中\ **filename**\ 为HDF5格式文件名称，
+\ **groupname**\ 表示HDF5文件中指定的group名称，目前，由燃耗计算生成的衰变源的的路径为
+\ **file/StepXXX/<cell_1 cell_2 ... cell_n>/(Energy, Intensity)**\ 
+
 源描述模块输入示例
 -----------------------
 
@@ -496,7 +578,7 @@ Transforma卡定义源定义的坐标变换。ID为坐标变换的编号和Sourc
 .. code-block:: c
 
     EXTERNALSOURCE
-    Source   1  Fraction =0.5  Particle = 1  Cyl/x=1 2 0 1 -5 5  Vector = 1 0 0  DirecMiu = 0  Energy = 4
+    Source   1  Fraction =0.5  Particle = 1  Cyl/x=1 2 -5 5 0 1   Vector = 1 0 0  DirecMiu = 0  Energy = 4
 
 
 该示例定义了一个平行于x轴的圆柱体体积源，粒子类型为中子，圆柱体的轴线沿x方向，

@@ -101,7 +101,34 @@ MPI/OepnMP混合并行运行
 例如 `mpiexec –n 2 RMC_MPI_OMP -s 10 input -o output` 表示使用2个进程，每个进程10个线程计算，
 输入文件名为"input"，输出文件名为"output"。
 
-   
+
+python调用RMC运行
+~~~~~~~~~~~~~~~~~
+
+RMC程序支持用户调用python模块进行计算，计算流程如下：
+
+  - **安装python模块** ：进入RMC程序根目录，执行"python setup.py install"安装RMC的python依赖
+    (或者将RMC项目根目录下的 **RMC** 文件夹复制到执行目录下)。
+
+  - **配置工作目录文件** ：假定用户执行目录名为"directory",进入该目录，新建"runner.py"文件
+    (或将RMC程序根目录下 **RMC** 文件夹中的"runner.py"复制到目录下，建议！！！)，新建"workspace"文件夹，
+    复制RMC可执行程序、程序运行所需数据库文件，如"xsdir, xsdir_sab, DepthMainLib, RMC_DATA.h5"等
+    到"workspace"文件夹中,在"workspace"文件夹中放入RMC程序输入卡inp。
+
+  - **设置计算条件** ：用户可以通过设置"runner.py"文件夹中的相关参数设置计算条件。"runner.py"文件示例如下：
+
+    .. code-block:: none
+
+      run(inp="workspace/inp", n_mpi=4, n_threads=None, exec="workspace/RMC", 
+          status="workspace/status.txt", conti=False, archive_dir=archive, platform='linux')
+      
+    其中， **inp** 指定输入文件(默认为workspace/inp)， **n_mpi** 指定并行核数， **n_threads** 指定openmp的
+    进程数， **exec** 指定RMC可执行程序位置(默认为workspace/RMC)， **status** 指定输出的状态文件， **conti** 
+    表示是否执行接续计算， **archive_dir** 指定输出文件的存放路径， **platform** 指定计算平台，包括"linux",
+    "tianhe", "yinhe"等。
+  
+  - **计算** ：用户在"directory"目录中执行 python runner.py即可执行
+
 
 测试输入输出
 ----------------
