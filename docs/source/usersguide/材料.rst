@@ -68,7 +68,8 @@
 
 .. code-block:: none
 
-  CeAce [ErgBinHash = <flag>] [pTable = <flag>] [OTFPTB = <flag>] [DBRC = <flag>] [TMS = <flag>] [TMSTally = <flag>] [OTFDB = <flag>]
+  CeAce [ErgBinHash = <flag>] [pTable = <flag>] [OTFPTB = <flag>] [OTFSAB=<flag>] 
+        [DBRC = <flag>] [TMS = <flag>] [TMSTally = <flag>] [OTFDB = <flag>]
 
 其中，
 

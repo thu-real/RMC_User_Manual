@@ -36,7 +36,9 @@ RMC的几何描述系统包括三类基本的几何描述单元，即，曲面�
 
 .. code-block:: none
 
-  Surf <id> <type> {params} [bc = <flag>] [pair = <pair surf>] [value=<v1 v2 ... vn>] [time=<t1 t2 ... tn>]
+  Surf <id> <type> {params} [rotate = <params>] [rotateangle = <params>] [move = <params>]
+                            [bc = <flag>] [pair = <pair surf>] [value=<v1 v2 ... vn>] [time=<t1 t2 ... tn>] 
+
 
 其中，
 
@@ -49,6 +51,13 @@ RMC的几何描述系统包括三类基本的几何描述单元，即，曲面�
 
 -  **bc**\ 是曲面边界条件（boundary condition）。bc = 0（缺省值）表示真空边界条
    件，bc = 1表示全反射边界条件，bc = 2表示白边界条件，bc = 3表示周期边界条件。
+
+-  **Move**\ 面的平移向量
+
+-  **Rotate**\ 面的旋转矩阵
+
+-  **RotateAngle**\ 面的旋转角。对面进行旋转和平移操作时，顺序为先旋转后平移。
+   注意，程序不支持对包含圆环面(TX/TY/TZ)的旋转。
 
 -  **pair**\ 是在周期边界条件下两个周期面的另一个，pair surf 是与该 surf 配对的另
    一个周期面。
@@ -136,7 +145,7 @@ RMC中的宏体定义方式如下：
 
 .. code-block:: none
 
- Body <id> <type> {params}
+ Body <id> <type> {params} [rotate = <params>] [rotateangle = <params>] [move = <params>]
 
 其中,
 
@@ -146,6 +155,13 @@ RMC中的宏体定义方式如下：
 
 -  **type**\ 是不同宏体类型所对应的关键词，\ **params**\ 是宏体参数。
    :numref:`bodytypes_table` 给出了RMC支持的宏体类型及相应的宏体参数。
+
+-  **Move**\ 宏体的平移向量
+
+-  **Rotate**\ 宏体的旋转矩阵
+
+-  **RotateAngle**\ 宏体的旋转角。对面进行旋转和平移操作时，顺序为先旋转后平移。
+   注意，程序不支持对圆环体(Torus)的旋转。
 
 .. table:: 宏体类型
    :name: bodytypes_table
