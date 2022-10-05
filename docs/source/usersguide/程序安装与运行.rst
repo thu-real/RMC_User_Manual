@@ -22,9 +22,25 @@ RMC采用ACE格式中子反应截面数据库，并通过索引文件获得数�
    ，形如 "DATAPATH = E:\\Library\\endf7_2" （windows）
    或 "DATAPATH = /home/username/Library/endf7_2" （Linux）
 
- - 将输入文件置于RMC可执行程序的目录内，即可运行算例。注意应保证“xsdir”索引文
-   件与RMC可执行程序在同一目录。执行燃耗计算之前，还需保证“DepthMainLib”燃耗数据库
-   文件与RMC可执行程序置于同一目录
+ - 将输入文件置于RMC可执行程序的目录内，即可运行算例。注意，用户需要让程序知道数据库索引
+   文件"xsdir"的具体路径以便RMC调用数据库。目前RMC支持以下几种指定"xsdir"路径的方式：
+
+   (1)命令行指定：
+
+   .. code-block:: none
+
+     mpiexec –n MPI进程数 RMC_MPI_OMP -s OMP线程数 输入文件名 -d xsdir文件路径
+
+   (2)添加环境变量"RMC_DATA_PATH"，形如：
+
+   .. code-block:: none
+
+     RMC_DATA_PATH=E:\\RMC_DATA （windows）
+     RMC_DATA_PATH=/home/username/RMC_DATA （Linux）
+
+   (3)使用默认路径，默认当前工作目录的路径：
+
+     用户应保证“xsdir”索引文件位于当前工作目录。
 
 
 哈希数据类型定义

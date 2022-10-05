@@ -49,6 +49,7 @@ ORIGEN-2的最新点燃耗数据库。
     SubStep <sub_num>
     Inherent <fraction>
     AceLib <lib_1 lib_2 ... lib_n>
+    DepthLib <lib_path>
     Strategy [type=<flag>] [substep=<flag>]
     Solver <flag>
     Parallel <flag>
@@ -125,6 +126,8 @@ ORIGEN-2的最新点燃耗数据库。
    据库中有相应的数据，核素才会被添加到栅元材料中并进行下一步的输运计算，否则会被筛
    选掉。在温度随燃耗步变化的燃耗计算中，用户通过该选项卡指定每个燃耗步燃耗区的温度。
    **注意**\ 考虑N个燃耗步对应N+1个状态点，因此输入的温度点的数目需要比燃耗步数大1
+
+-  **DepthLib**\ 输入卡指定燃耗计算使用的燃耗数据库的 \ **绝对路径**\
 
 -  **Strategy**\ 输入卡指定燃耗步策略关键词。
 
