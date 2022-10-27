@@ -144,3 +144,16 @@ RMC一次时空动力学模拟会产生多个".innerproduct"和".tally"文
 需要注意的是， “.innerproduct”、".tally"文件中的功率变化及功率空间分布（或中子通量形状）
 是未经过归一化的。
 
+.innerproduct中的各参数含义为：
+
+-  **NeuPopu**\ 表示的物理量为 :math:`<1/v * \Phi(r,\Omega,E,t_n+1), W(r,\omega,E)>`
+
+-  **Lambda x**\ (x>0)表示的物理量为各组缓发中子的平均衰变系数；
+
+-  **Beta 0**\ 表示瞬发中子份额（加权后）；
+
+-  **Beta x**\ (x>0)表示各组缓发中子份额（加权后）；
+
+-  **Reactivity**\ 表示动态反应性；
+
+-  **GenTime**\ 表示加权后的中子代时间，单位是10^-8s；

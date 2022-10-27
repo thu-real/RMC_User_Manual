@@ -140,7 +140,12 @@
 
 .. code-block:: none
 
-  MgAce [ErgGrp = <grp>]
+  MgAce [ErgGrp = <grp>] [DelayNeuFamily = <grp>]
+        [Beta = <fismat1> <grp1 value> <grp2 value> ... <grpn value>
+                <fismat2> <grp1 value> <grp2 value> ... <grpn value>
+                ...
+                <fismatm> <grp1 value> <grp2 value> ... <grpn value>]
+        [Lambda = <grp1 value> <grp2 value> ... <grpn value>]
 
 
 
@@ -149,6 +154,15 @@
 -  **MgAce**\ 为多群ACE截面相关输入卡的关键词。
 
 -  **ErgGrp**\ 选项卡指定多群ACE截面的群数。
+
+下面的几个选项一般用于时空动力学计算：
+
+-  **DelayNeuFamily**\ 选项卡指定缓发中子组数
+
+-  **Beta**\ 选项卡指定各裂变材料的各组缓发中子份额，<fismatm> 指定第m个裂变材料的材料号，
+   <grpn value>指定对应裂变材料第n组缓发中子份额，<grpi value>的数目应与DelayNeuFamily的值一致。
+
+-  **Lambda**\ 选项卡指定各组中子的中子代时间，<grpn value> 指定第n组中子的中子代时间。
 
 需要指出的是，多群截面数据库紧密依赖于实际物理问题。因此，公开发布的RMC程序包中
 不提供多群ACE数据库，用户可以使用其它数据库处理软件生成与实际问题相关的多群ACE截

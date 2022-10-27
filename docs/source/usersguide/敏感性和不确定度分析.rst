@@ -240,6 +240,8 @@ keff敏感性分析的输入示例：
 
 -   **Reaction**\ 选项卡指定敏感性分析的各个核素的反应类型。每个核素可以对应多个反应类型，核素之间以逗号间隔，例如“Reaction= 16 17 , 102, -6, 107”。反应类型与编号的对应关系可查阅ENDF/B手册，表7-1给出常见的一些反应类型编号。需要注意的是，\ **Reaction**\ 所对应的核素是和\ **Nuclide**\ 选项卡保持一致的。另外，Reaction选项卡不能和Uncertainty选项卡同时使用。
 
+这是因为在使用Uncertainty卡的时候，考虑的反应类型由协方差数据库中包含的反应类型指定。在不使用Uncertainty卡时，需要加上Reaction选项卡。
+
 .. code-block:: none
 
    ResponseMT
@@ -366,6 +368,23 @@ keff敏感性分析的输入示例：
 -	**Energybin**\ 选项卡指定敏感性系数输出的能量区间，参数为能量间隔点（Mev）。例如，“\ **Energybin 6.25E-7  20**\ ”表示计数区间为0.625ev到20Mev，20Mev到正无穷。\ **Energybin**\ 选项卡只可在\ **GroupOption**\选项卡的\ **flag=0**\ 情况下使用。
 
 
+敏感性计算输出的.Adjoint文件格式为
+
+.. code-block:: none
+
+   ------------------ Nuclide = 92235, Reaction Type = 4 ------------------
+   Group       Energy Bin         Ave            RE
+     1         1.0000E-11     0.0000E+00     0.0000E+00
+     2         3.0000E-09     0.0000E+00     0.0000E+00
+     3         7.5000E-09     0.0000E+00     0.0000E+00
+     ...
+   ================================ sum of energy of first response  ================================
+   ------------------ Nuclide = 92235, Reaction Type = 4 ------------------
+   Group       Energy Bin         Ave            RE
+     0         8.1900E+00     3.5373E-03     6.7842E-01
+
+其中，前一部分表示各能量区间的敏感性系数，能量区间与GroupOption选项指定的一致；后一部分为能量积分敏感性系数，为各能量区间敏感性系数的累加，该值计算结果与能量区间选取无关。
+敏感性系数对应的标准差均为相对标准差。
 
 不确定性分析
 ~~~~~~~~~~~~~~~~~~~~~
@@ -453,3 +472,18 @@ keff敏感性分析的输入示例：
 
 -	**GroupOption**\ 为指定采用的能群数目（该能群数与使用的扰动因子数据库能群数目一致）的关键词。EnergySize为相应参数。目前，EnergySize只支持44、56和252三种参数选择。
 
+不确定度分析的输出文件.uncertainty格式为
+
+.. code-block:: none
+
+   ================================ Uncertainty Information ================================
+   the relative standard deviation of General response (% delta-R/R) due to cross-section covariance data is:
+   2.1822E+01 +/- 2.6232E+01 %delta-R/R   //表示核数据引起的总的不确定度
+                   covariance matrix
+   nuclide-reaction      with       nuclide-reaction          %delta-R/R due to this matrix
+       92235,  4                       92235,   4             1.4745E-01  +/- 6.8564E-04
+       92235,  16                      92235,   16            0.0000E+00  +/- 0.0000E+00
+       92235,  18                      92235,   18            3.3984E-01  +/- 3.4711E-02
+       ...
+
+其中，covarance matrix下面各行表示covdir文件的协方差矩阵中，反应1和反应2的协方差对响应量不确定度的贡献。
