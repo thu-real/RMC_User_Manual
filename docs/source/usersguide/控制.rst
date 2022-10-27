@@ -1,0 +1,22 @@
+.. _section_control:
+
+CONTROL 控制选项卡
+=======================
+
+CONTROL 卡提供了对 RMC 部分运行特性的控制选项，其格式如下：
+
+.. code-block:: none
+
+    Control
+    Hash CRC64
+
+目前，CONTROL卡支持对Hash函数的选择，其中，
+
+-  **Hash**\ 为Hash函数选择的输入卡关键词，目前有效值为CRC64和BIT_MOVE（不区分大小写），默认值
+   为BIT_MOVE；
+
+
+其中，CRC64可以参考 https://en.wikipedia.org/wiki/Cyclic_redundancy_check , BIT_MOVE 可以
+参考 https://www.sciencedirect.com/science/article/pii/S0306454921002711 。如果使用其中一种
+报出了hash冲突错误，则可以切换为另一种。
+
