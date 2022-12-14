@@ -41,19 +41,6 @@
    份额（相对值），若\ **fraction < 0**\ ，表示质量密度份额（相对值）。同一种材
    料中的\ **fraction**\ 必须具有相同符号。
 
-RMC的默认.material输出文件中输出Mass Density和Atom Density为5位小数，可以通过选项
-指定输出9位小数:
-
-.. code-block:: none
-
-  NineDensity
-
-
-
-其中，
-
--  **NineDensity**\ 为输出9位小数关键词。
-
 除普通材料输入卡以外，RMC还提供热化材料输入卡，为连续能量ACE截面指定相应的热化数据库。
 
 .. code-block:: none
@@ -266,7 +253,6 @@ bar\ :sup:`-1`\ cm\ :sup:`-1`\ ，H1和O16的原子比为2 :
 \ **DBRC = 0**\ 表示不使用DBRC算法，
 \ **TMS = 0**\ 表示不使用TMS算法，
 \ **OTFDB = 1**\ 表示使用高斯厄米特积分方法进行在线多普勒展宽。
-\ **NineDensity**\ 表示输出密度为9位小数。
 
 .. code-block:: c
 
@@ -280,7 +266,6 @@ bar\ :sup:`-1`\ cm\ :sup:`-1`\ ，H1和O16的原子比为2 :
         8016.30c 1.0
     Sab 2 lwtr.60t
     CEACE pTable = 0 ErgBinHash = 1 DBRC = 0 TMS = 0 OTFDB = 1
-    NineDensity
 
 
 使用多群ACE数据库的材料模块
