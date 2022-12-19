@@ -4,10 +4,10 @@
 ==========
 
 复杂几何描述是蒙卡程序相对于确定论程序的重要优势之一。与世界上其它绝大多数蒙卡程
-序一样，RMC支持基于CAD几何与CSG几何输运。CSG几何采用基于层级空间的几何描述系统（universe-based
+序一样，RMC采用基于层级空间的几何描述系统（universe-based
 geometry system）。
 
-RMC的CSG几何描述系统包括三类基本的几何描述单元，即，曲面（surface），栅元（cell）和
+RMC的几何描述系统包括三类基本的几何描述单元，即，曲面（surface），栅元（cell）和
 空间（universe）。一般地，物理系统由多个或单个层级空间组成，每个空间由一定数量的
 栅元构成，栅元通过曲面方向（sense）的交并运算来定义。RMC几何输入模块的一般具有以下形式：
 
@@ -137,8 +137,8 @@ RMC的CSG几何描述系统包括三类基本的几何描述单元，即，曲�
 
 .. _section_geometry_macrobody:
 
-宏体（macrobody）
--------------------
+宏体（macrobody） （仅限企业版本）
+-------------------------------------------
 
 曲面是RMC几何描述的最基本单元，而宏体定义方式可以代替面定义的方式进行建模。
 RMC中的宏体定义方式如下：
@@ -473,7 +473,7 @@ RMC的布尔运算符包括交集（&）、并集（:）和补集（!）两种�
    高级用户使用。
 
 -  **Move**\ 选项卡定义该栅元的平移向量，**Rotate**\ 选项卡与 **RotateAngle**\ 选项卡
-   定义该栅元几何变换的旋转矩阵的转置，分别类似于3.3.3 空间几何变换的move、rotate和rotateangle卡。
+   定义该栅元几何变换的旋转矩阵的转置，分别类似于3.4.3 空间几何变换的move、rotate和rotateangle卡。
    对栅元进行几何变换时，是先旋转，再平移。对于被填充的栅元，是连同其内部填充结构做整体变换。
    这里不支持对包含圆环面(TX/TY/TZ)的旋转。
 
@@ -527,7 +527,7 @@ RMC的布尔运算符包括交集（&）、并集（:）和补集（!）两种�
     surf 16 py 0.63 bc = 1
 
 若该单层空间用于随机栅格扰动法填充上层重复结合结构，则需要用到DISP关键词对随机颗
-粒球心位置进行扰动，具体方法及输入在3.3.3节进行说明。
+粒球心位置进行扰动，具体方法及输入在3.4.3节进行说明。
 
 多层空间
 ~~~~~~~~~~~~~~
@@ -879,10 +879,11 @@ RMC隐式方法采用弦长抽样法（CLS），通过概率分布函数
    方法获得更高的填充率时必须先进行RSA计算，RSA的输入卡片必须为1，且相关选项卡也必须填写完全**。
 
 -  **TIME**\ 选项卡定义DEM方法产生小球的下落时间(自落体体时间),单位为s，一般建议时间设置为颗粒下落两倍的几何高度所需时间的两倍。
-   例如几何高度为1m时，建议时间设置为1s。
+   :math:`h=1/2gt^2` 为重力加速度公式，这里使用 :math:`2h=1/2gt^2` ，2h为颗粒下落高度的两倍，即填充高度，t为“颗粒下落两倍几何高度所需要时”，
+   一般建议这里时间设置为2t,例如几何高度为1m时，建议时间设置为1s。
 
--  **STEP**\ 选项卡定义DEM方法产生小球的设置计算时间间隔的步长，默认值为0.02，增大这个值可以加快DEM计算速度，
-   但可能导致生成小球失败。
+-  **STEP**\ 是DEM方法计算公式中的一个时间间隔步长参数，通过这个参数计算得到DEM方法的循环时间间隔，一般情况下不建议修改，使用默认值0.02就可以，
+   增大该值可以增大时间间隔，缩短计算时间，但是可能导致失败，最大不建议超过0.2。
 
 需要注意的是，\ **显式建模法的Lattice所在的空间的坐标原点不是在球、圆柱、长方体的几何中心
 而是在定位小球位置的网格中，坐标原点为网格的左下角角点。如下图所示：**
@@ -930,89 +931,6 @@ RMC隐式方法采用弦长抽样法（CLS），通过概率分布函数
 -  **max**\ 选项卡定义面心立方球阵中一条边上最大填充的小球数。默认为10000，请使用前确认无误。
 
 需要指出的是，\ **面心立方球阵结构的密排面总是建立在法线为（1,1,1）的平面上。通过平移和旋转变换，可以将其转换到其它平面。**
-
-
-基于CAD(BREP)几何的输运(仅限企业版本)
--------------------------------------------
-
-通过DAGMC(Direct Accelerated Geometry Monte Carlo)的方式，支持基于CAD几何的输运功能。
-临界计算及固定源计算功能、画图功能已验证，其余功能暂不支持。
-使用此功能需提前准备满足DAGMC要求的几何网格文件，命名为 “ dagmc.h5m ” 。基于BREP几何输运功能的使用流程如下：
-
-
-准备dagmc.h5m文件
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-用户可在购买或申请使用教育版 `Cubit软件 <https://coreform.com/products/coreform-cubit/>` ，并
-安装 `DAGMC插件<https://github.com/svalinn/Cubit-plugin>` 后使用该软件生成dagmc.h5m文件。具体步骤如下：
-
--  打开Cubit软件，导入.stp, .sat, .stl等通用格式的CAD模型。
-
--  在Cubit自带的命令行窗口,使用如下命令为每个body(volume)赋予材料（mat，无默认值）、
-   中光电子重要性（impn、impp、impe，默认均为1）、栅元温度（Temp，单位为K）等信息:
-
-   .. code-block:: sh
-
-       group "mat:1" add vol 3 //id为3的栅元中，材料的用户编号为1，即材料卡中的序号
-       group "temp:300" add vol 2 to 1000 //id为2到1000的栅元中，温度均为300K
-       group "impn:24" add vol 56 //id为56的栅元中，中子重要性为24
-
--  使用如下命令为Surface赋予边界条件（boundary），默认为真空边界条件，可赋予反射边界条件，其他边界条件暂不支持:
-
-   .. code-block:: sh
-
-       group "boundary:reflective" add surf 35 //id为35的面中的边界条件为反射边界条件
-
--  添加Graveyard，即完全包裹模型的几何体。在Graveyard之外，粒子将直接被杀死。
-   在Cubit自带的命令行窗口,可以使用如下命令设置Graveyard，并添加材料为Graveyard:
-
-   .. code-block:: sh
-
-       create brick x 4000  // 假设该栅元id为9
-       create brick x 4005  // 假设该栅元id为10
-       subtract vol 9 from vol 10  // 将10与9取补集，得到Graveyard的id为11
-       group "mat:Graveyard" add volume 11 // 将材料Graveyard的赋予这个几何体
-
--  为填充空间赋材料，填充空间指在Graveyard内部各几何体之间的空隙空间。填充空间的id是Graveyard的id+1:
-
-   .. code-block:: sh
-
-       group "mat:4" add volume 12 // 填充空间的id是Graveyard的id+1
-
--  imprint、merge几何体的重合面、点，使用如下命令:
-
-   .. code-block:: sh
-
-       imprint body all
-       merge body all
-
--  导出DAGMC网格文件，并检查水密性，使用如下命令，其中 \ **faceting_tolerance** 指网格的离散精度，
-   需要选定合适的离散精度以保证计算结果精确可靠。但较小的离散精度会导致几何网格文件较大且导出、读入耗时较长。
-
-   .. code-block:: sh
-
-       export dagmc "dagmc.h5m" faceting_tolerance 1.e-1 make_watertight
-
-通过以上步骤可以得到dagmc.h5m的网格文件。
-
-
-准备几何部分之外的输入卡
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-用户需要准备几何部分以外的输入卡，在输入卡中可不写 \ **Universe** 和 \ **Surface** 模块，但需声明 \ **DAGMC** 关键词。
-
-.. code-block:: none
-
-    DAGMC
-
-输入卡中需要填写材料部分、Criticality部分、Fixedsource部分、计数器、权窗等内容，可参考对应模块的用户手册填写。
-
-
-执行计算
-~~~~~~~~~~~~~~~
-将DAGMC网格文件和其他部分输入卡放置于执行目录下，可使用以下命令执行计算：
-
-.. code-block:: sh
-
-    mpiexec -n [并行核数] ./RMC [其他部分输入卡名]
 
 
 几何模块输入示例
@@ -1237,7 +1155,7 @@ Universe 2和Universe 3分别为冷却剂栅元和燃料栅元。由 :numref:`la
   cell 2 16 : -17 : 18 mat = 0 void = 1 //Assembly outside
   cell 3 -16 & 17 & -18 & (1 : 2 : 3 : -4 : 5 : 6 : -7 : 8) mat = 5 //reflector
 
-  niverse 1 move=-15 -9.05 0 lat=2 pitch=2 2.06787 scope=11 11 sita=63.435 fill=
+  Universe 1 move=-15 -9.05 0 lat=2 pitch=2 2.06787 scope=11 11 sita=63.435 fill=
       2 2 2 2 2 2 2 2 2 2 2
       2 2 2 2 2 3 3 3 3 3 2
       2 2 2 2 3 3 3 3 3 3 2
@@ -1417,7 +1335,7 @@ x-y平面内逆时针旋转90°（rotate = 0 1 0 -1 0 0 0 0 1）并平移
 
 
 .. code-block:: c
-  :caption: 随机介质组件模型（隐式建模法）
+  :caption: 随机介质组件模型（显式建模法）
   :name: explicit_model
 
     ///////////// SingleRod Explicit Model PF=0.32 /////////////
@@ -1526,8 +1444,8 @@ x-y平面内逆时针旋转90°（rotate = 0 1 0 -1 0 0 0 0 1）并平移
 
     ///////////// Array9*9 Implicit Model PF=0.32 /////////////
     Universe 0
-    cell 1 -1:2:-3:4    mat=0 void=1                                 // Outside the Assembly
-    cell 2 1&-2&3&-4    fill=1                                       // Inside the Assembly
+    cell 1 -1:2:-3:4    mat=0 void=1   // Outside the Assembly
+    cell 2 1&-2&3&-4    fill=1         // Inside the Assembly
 
     Universe 1 lat=1 pitch=1.8 1.8 1 scope=9 9 1 fill=
      2*81
@@ -1551,7 +1469,9 @@ x-y平面内逆时针旋转90°（rotate = 0 1 0 -1 0 0 0 0 1）并平移
     cell 66 -49    mat = 7
 
     Universe 12
-    cell 60 -44 mat=1  vol=0.000381704      tmp=900
+    cell 60 -44 mat=1  vol=0.000381704  tmp=900 
+   //vol表示对应的cell的体积，特别注意，当该cell为随机介质
+   //并且使用了merge卡进行燃耗区合并时，此处体积为全部合并区域的燃料颗粒体积
     cell 61 44&-45 mat= 5    tmp=900
     cell 62 45&-46 mat= 6    tmp=900
     cell 63 46&-47 mat= 7    tmp=900
@@ -1559,17 +1479,17 @@ x-y平面内逆时针旋转90°（rotate = 0 1 0 -1 0 0 0 0 1）并平移
     cell 65 48 mat=7         tmp=900
 
     Surface
-    surf 1  px  0                       bc=1
-    surf 2  px  16.2                    bc=1
-    surf 3  py  0                       bc=1
-    surf 4  py  16.2                    bc=1
+    surf 1  px  0      bc=1
+    surf 2  px  16.2   bc=1
+    surf 3  py  0      bc=1
+    surf 4  py  16.2   bc=1
     surf 30 cz 0.6461
     surf 31 cz 0.6546
     surf 32 cz 0.7116
-    surf 13 py  -0.90                   bc=1
-    surf 14 py   0.90                   bc=1
-    surf 15 px  -0.90                   bc=1
-    surf 16 px   0.90                   bc=1
+    surf 13 py  -0.90  bc=1
+    surf 14 py   0.90  bc=1
+    surf 15 px  -0.90  bc=1
+    surf 16 px   0.90  bc=1
     surf 17 pz  -176.5 bc=1
     surf 18 pz   176.5 bc=1
     surf 44 so  0.0450
@@ -1577,7 +1497,7 @@ x-y平面内逆时针旋转90°（rotate = 0 1 0 -1 0 0 0 0 1）并平移
     surf 46 so  0.0555
     surf 47 so  0.0590
     surf 48 so  0.0610
-    surf 49 inf
+    surf 49 inf  //inf表示无限大曲面，目前只用于描述随机介质基体所在空间
 
     Material
     mat 1 -12.95                     //UC
