@@ -1,0 +1,234 @@
+.. _section_picard_coupling:
+
+核热耦合迭代计算 （仅限企业版本）
+=======================================
+
+RMC支持进行核热耦合计算，耦合功能使用Python脚本进行迭代流程控制，使用 :ref:`网格 <section_mesh>` 功能进行温度场和密度场数据的获取与映射。
+
+非企业版本用户如果需要进行核热耦合计算，可以参考 :ref:`网格 <section_mesh>` 功能的相关内容，自行完成迭代耦合控制脚本的编写和数据传递。
+
+该功能涉及到的输入卡在临界输入卡中，如果需要进行带燃耗的耦合计算，则一般采用单步燃耗计算模式，
+进而影响到燃耗输入卡。
+
+核热耦合迭代计算模块输入卡
+-------------------------------
+
+不论临界耦合还是燃耗耦合，耦合迭代过程的必需输入卡都在“CRITICALITY”内：
+
+.. code-block:: none
+
+    CRITICALITY
+    <CRITICALITY的其他选项卡>
+    Couple MaxIteration = 5
+
+其中，
+
+-  **Couple**\ 为核热耦合迭代计算输入卡的关键词；
+
+-  **MaxIteration**\ 为每次耦合迭代的最大迭代次数，比如如果有4个燃耗步，则每个燃耗步的耦合迭代都有上限5次；
+
+**注意：该卡为Python识别，直接使用RMC运行时会报错**
+
+Mesh输入卡中，文件名和数据集在耦合迭代过程中比较固定，具体为：
+
+.. code-block:: none
+
+    Mesh
+    MeshInfo 1 type=1 filename=CTF.h5 datasetname=pin_fueltemps  //fuel temp
+    MeshInfo 2 type=1 filename=CTF.h5 datasetname=channel_liquid_temps  //moderator temp
+    MeshInfo 3 type=1 filename=CTF.h5 datasetname=liquid_density  //moderator density
+
+相应的燃料栅元需要使用“tmp=-1”，慢化剂栅元需要使用“tmp=-2 dens=-3”选项，以使用Mesh中的数据。
+
+在进行带燃耗的核热耦合计算时，还需要添加单步燃耗选项和开启输入卡输出选项：
+
+单步燃耗选项为：
+
+.. code-block:: none
+
+    BURNUP
+    <BURNUP的其他选项卡>
+    SUCCESSION singlestep = 1 CUMULATIVETIME = 37.91706013572237 CUMULATIVEBURNUP = 0.995
+
+其中，
+
+-  **singlestep**\ 为单步燃耗开关，默认为0（关闭单步燃耗，一次性计算完成全部燃耗步），核热耦合中需要置为1（开启单步燃耗）；
+
+-  **CUMULATIVETIME**\ 为单步燃耗接续过程的积累燃耗时间，单位为天。一般不需要用户输入，为RMC接续计算自动生成下一步输入文件时给出；
+
+-  **CUMULATIVEBURNUP**\ 为单步燃耗接续过程的积累燃耗深度，单位为MWd/kg。一般不需要用户输入，为RMC接续计算自动生成下一步输入文件时给出；
+
+开启输入卡输出选项为 :ref:`输出控制 <section_output>` 中的
+
+.. code-block:: none
+
+    PRINT
+    Inpfile <flag>
+
+将<flag>置为1即可。
+
+核热耦合迭代计算所需要的其他输入卡
+-----------------------------------
+
+在与CTF的核热耦合过程中，为自动生成RMC和CTF可以读取的数据格式，需要为第三方脚本提供补充信息输入卡，共计四个，具体如下：
+
+CoreBound.inp 堆芯耦合迭代的边界：
+
+.. code-block:: none
+
+    -139.776 139.7760
+    -139.776 139.7760
+    0.0 365.76
+
+三行分别为x、y、z轴的边界（小值在前），单位为厘米。
+
+CoreMap.inp 堆芯组件的排布：
+
+.. code-block:: none
+
+    13 13
+    0   0   0    0    0    1    2    3    0    0    0    0    0
+    0   0   0    4    5    6    7    8    9    10   0    0    0
+    0   0   11   12   13   14   15   16   17   18   19   0    0
+    0   20  21   22   23   24   25   26   27   28   29   30   0
+    0   31  32   33   34   35   36   37   38   39   40   41   0
+    42  43  44   45   46   47   48   49   50   51   52   53   54
+    55  56  57   58   59   60   61   62   63   64   65   66   67
+    68  69  70   71   72   73   74   75   76   77   78   79   80
+    0   81  82   83   84   85   86   87   88   89   90   91   0
+    0   92  93   94   95   96   97   98   99   100  101  102  0
+    0   0   103  104  105  106  107  108  109  110  111  0    0
+    0   0   0    112  113  114  115  116  117  118  0    0    0
+    0   0   0    0    0    119  120  121  0    0    0    0    0
+    17 17
+
+第一行为堆芯的组件分布的矩阵阶数，上面例子中为“13x13”。从第2行开始为组件分布的矩阵，上例中即为13x13的矩阵，
+其中0的位置为没有组件的位置，其他位置需要从1开始进行组件编号。在这个矩阵之后，最后一行为单组件的棒重复几何的矩阵阶数，
+上例中为17x17的标准组件。
+
+TotalPower.inp 总功率：
+
+.. code-block:: none
+
+    3411.0
+
+该文件中只有一个数字，即为算例总热功率，单位为MW。
+
+GuideTube.inp 各组件中的导管位置：
+
+.. code-block:: none
+
+    3 6
+    3 9
+    3 12
+    4 4
+    4 14
+    6 3
+    6 6
+    6 9
+    6 12
+    6 15
+    9 3
+    9 6
+    9 9
+    9 12
+    9 15
+    12 3
+    12 6
+    12 9
+    12 12
+    12 15
+    14 4
+    14 14
+    15 6
+    15 9
+    15 12
+
+该文件的行数即为每个组件中的导管数量，每行的两个数字分别为各个导管的位置坐标。在标准17x17组件中，
+25个导管的位置就是上例中的数值。
+
+核热耦合迭代计算运行方式
+-------------------------------
+
+核热耦合计算建议在一个空文件夹中进行，将python代码文件夹RMC复制到这个文件夹中，
+并将其中的“runner.py”拷贝出来，另外需要创建workspace文件夹，将RMC、CTF（包括预处理器和可执行程序）以及rmc2ctf、ctf2rmc
+复制进workspace文件夹，将输入卡inp以及各种其他输入卡放入workspace文件夹，并设置好数据库路径环境变量“RMC_DATA_PATH”。
+
+最终的文件夹结构如下：
+
+.. code-block:: bash
+
+    # 环境变量“RMC_DATA_PATH”指向数据库索引文件xsdir等的路径。
+    simulations
+    |-- RMC                    # RMC的Python代码包文件夹
+    |-- runner.py              # 从RMC文件夹中复制出来的文件
+    |-- workspace              # 计算文件夹
+           |-- inp             # RMC输入卡
+           |-- CoreBound.inp   # ctf2rmc输入卡
+           |-- CoreMap.inp     # ctf2rmc输入卡
+           |-- GuideTube.inp   # rmc2ctf输入卡
+           |-- TotalPower.inp  # rmc2ctf输入卡
+           |-- geo.inp         # CTF输入卡（本手册不提供说明）
+           |-- assem.inp       # CTF输入卡（本手册不提供说明）
+           |-- control.inp     # CTF输入卡（本手册不提供说明）
+           |-- RMC             # RMC可执行程序
+           |-- cobratf         # CTF可执行程序
+           |-- cobratf_preproc # CTF预处理器
+           |-- rmc2ctf         # 生成CTF的power.inp的接口程序
+           |-- ctf2rmc         # 生成RMC的数据h5文件CTF.h5
+
+
+计算运行命令为“python3 runner.py”，后面加上“--help”可以得到帮助信息
+
+.. code-block:: bash
+
+    $ python3 runner.py --help
+    usage: runner.py [-h] [--platform PLATFORM] [--mpi MPI_NUM] [--omp OMP_NUM]
+                     [--assem ASSEM_NUM] [--continue-inp CONTINUE_INP]
+                     [--continue]
+                     inp
+
+    positional arguments:
+      inp                   the path to the input file
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      --platform PLATFORM   platform on which to run the job
+      --mpi MPI_NUM         the number of MPI processes to use
+      --omp OMP_NUM         the number of OpenMP threads to use in each process
+      --assem ASSEM_NUM     the number of assemblies in the model, default not to
+                            calculate CTF
+      --continue-inp CONTINUE_INP
+                            the name of the input file for continuous calculation
+      --continue            whether this calculation is a continuous one or not
+
+
+具体示例如下：
+
+.. code-block:: bash
+
+    python3 runner.py --platform tianhe --mpi=240 --omp=12 --assem=121 workspace/inp
+
+其中，
+
+-  **platform**\ 为计算平台，需要根据不同平台上的并行计算任务提交命令进行设置，
+   可选值包括"Linux"（默认值，mpirun命令）、"tianhe"（yhrun命令）。具体使用的命令可以参考Python内相关代码；
+
+-  **mpi**\ 为RMC计算使用的MPI进程数量；
+
+-  **omp**\ 为RMC计算使用的OpenMP线程数量；
+
+-  **assem**\ 为模型组件数目，亦即CTF计算使用的MPI进程数量；
+
+耦合迭代过程支持接续计算，命令为：
+
+.. code-block:: bash
+
+    python3 runner.py --platform tianhe --mpi=240 --omp=12 --assem=121 workspace/inp \
+      --continue --continue-inp path/to/inp.cycle.2.burnup24.couple3
+
+其中,
+
+- **continue**\ 表示启动接续计算
+- **continue-inp**\ 指向接续上一步的输入卡，实际上主要是提供上一步的cycle和burnup编号。
+  示例中下一步计算为cycle 1的burnup 25的第一次耦合迭代。目前暂不支持couple层级的接续计算，因此couple后面的数值应当与MaxIteration相等。
