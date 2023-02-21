@@ -27,7 +27,7 @@ RMC包含三类计数器，分别是栅元计数器（cell tally）、网格计�
               [Volume=<vol>] [Multiplier=<mul>] [Attenuator=<att>] [Dose=<dose>]
               [Gaussian=<gaussian>] [Value=<val_bin>] [Segment=<seg_bin>]
               [Flag=<flag_bin>] [Nest=<nest>] [ReactionRate=<params>]
-              [Source=<source_bin>]
+              [Source=<source_bin>][Absolute=<val>]
 
 
 其中，
@@ -81,6 +81,9 @@ RMC包含三类计数器，分别是栅元计数器（cell tally）、网格计�
 
 -  **Source**\ 用于定义源分箱，即对抽样自某个源的粒子单独进行统计，仅用于固定源计算中，其
    用法在后面介绍。
+
+-  **Absolute**\ 用于输入绝对值，返回一个倍增因子MultiplicationFactor以对蒙卡统计的结
+   果进行加权平均，当用户输入多个cell时，绝对值就是输入所有cell的总值。
 
 Cell选项卡
 ~~~~~~~~~~~~~~~~
@@ -613,7 +616,7 @@ Reactionrate选项卡
 
   MeshTally <id> [Type = <type>] [Particle = <type>]
                  [Energy = <erg_bin>] [Normalize = <flag>]
-                 [HDF5Mesh = <flag>]
+                 [HDF5Mesh = <flag>] [Absolute = <val>]
                  [Geometry=<geo>] [Axis=<a1><a2><a3>] 
                  [Vector=<v1><v2><v3>][Origin=<o1><o2><o3>] 
                  [Scope = <params>] [Bound = <params>]
@@ -652,6 +655,9 @@ Reactionrate选项卡
 
 - **HDF5Mesh**\ 选项卡制定是否将该网格计数器的结果输出为网格类型的HDF5文件。
    **HDF5Mesh = 1**\ 表示输出， **HDF5Mesh = 0**\ （缺省值）表示不输出。
+
+-  **Absolute**\ 选项卡指定绝对值，返回一个倍增因子MultiplicationFactor供用户
+   将网格计数器统计的相对值转化为绝对值。
 
 -  **Geometry**\ 选项卡指定坐标系类别，1为直角坐标系，2为柱坐标系，缺省为1。
 
