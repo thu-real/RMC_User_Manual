@@ -784,5 +784,5 @@ cm。燃料组件为17×17结构，含264根燃料棒和25个水通道。根据U
     Strategy    type=0
     Parallel    1
     Solver      2
-    MERGE       2 5
+    MERGE       level = 2 univ = 5
 
