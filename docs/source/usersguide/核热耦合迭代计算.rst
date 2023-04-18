@@ -19,13 +19,16 @@ RMC支持进行核热耦合计算，耦合功能使用Python脚本进行迭代�
 
     CRITICALITY
     <CRITICALITY的其他选项卡>
-    Couple MaxIteration = 5
+    Couple MaxIteration = 2 VARY_CYCLE = 200 300 400
 
 其中，
 
 -  **Couple**\ 为核热耦合迭代计算输入卡的关键词；
 
 -  **MaxIteration**\ 为每次耦合迭代的最大迭代次数，比如如果有4个燃耗步，则每个燃耗步的耦合迭代都有上限5次；
+
+- **VARY_CYCLE**\ 为中子历史增长方法的输入卡，如果没有这个输入卡，则每次耦合迭代的源迭代次数不变；
+  如果有这个输入卡，则要求输入卡的数字的数量等于MaxIteration+1。
 
 **注意：该卡为Python识别，直接使用RMC运行时会报错**
 
