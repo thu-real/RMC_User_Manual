@@ -140,7 +140,7 @@
 
 .. code-block:: none
 
-  MgAce [ErgGrp = <grp>] [DelayNeuFamily = <grp>]
+  MgAce [ErgGrp = <grp_neu> <grp_pho>] [DelayNeuFamily = <grp>]
         [Beta = <fismat1> <grp1 value> <grp2 value> ... <grpn value>
                 <fismat2> <grp1 value> <grp2 value> ... <grpn value>
                 ...
@@ -153,7 +153,7 @@
 
 -  **MgAce**\ 为多群ACE截面相关输入卡的关键词。
 
--  **ErgGrp**\ 选项卡指定多群ACE截面的群数。
+-  **ErgGrp**\ 选项卡指定多群中子和多群光子ACE截面的群数。当处于纯中子输运模式时, 后面的光子群数可以写成0或者省略;当处于纯光子输运模式时,前面的中子群数需要写成0,不能省略
 
 下面的几个选项一般用于时空动力学计算：
 
