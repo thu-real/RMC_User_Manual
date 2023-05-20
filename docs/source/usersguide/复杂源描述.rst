@@ -282,7 +282,7 @@ CELL卡（不使用Position, X, Y, Cyl等），程序将自动根据定义的栅
      UNIVERSE 1  move=-50.004 -20.01 0 lat=1 pitch=16.668 13.34 1 scope=3 3 1 fill=3*9
      
      UNIVERSE 2  move=0 -20 0  lat=1 pitch=25 10 1  scope=2 4 1 fill=4 4 6 4 4 5 4 4
-     	
+
      UNIVERSE 3  move=8.334  6.67 0
      cell  6     21:-22:-23:24  mat=1 
      cell  8     -21&22&23&-24  mat=2 
@@ -835,4 +835,486 @@ Height在（-5,5）上均匀抽样，上述即为按1/4圆柱体积进行均匀�
 该示例对一个圆柱体体源进行了旋转和平移，先按照旋转矩阵 :math:`\begin{bmatrix} 0 &0 &-1 \\ 0
 & 1 &0 \\ 1 & 0 &0 \end{bmatrix}` 进行旋转，再按照平移向量（0.5 0.5 1）进行平移。
 注意：如果同时定义坐标旋转和坐标平移，则先进行坐标旋转，后进行坐标平移。
+
+用户自定义外源子程序
+--------------------------------------------
+
+RMC支持使用一个python脚本来进行更多样化的源描述。用户可不书写源描述输入卡，改为提供一个自定义的子程序，RMC每次需要抽样一个源粒子时，会调用一次用户自定义的子程序python脚本，得到必要的粒子信息，以进行后续的输运过程。同时RMC也提供一些具有特定功能的函数供用户在子程序python脚本中调用，以使用RMC内的功能或信息。
+
+
+外源子程序的结构
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+用户自定义的外源子程序由三个部分组成，分别为导入动态库、定义source函数、返回粒子信息。
+
+-  外源子程序示例
+
+.. code-block:: python
+
+    #如果完全不使用RMC内部的函数，这一部分不是必须的
+    import ctypes 
+                  #RMC内部的函数是以C动态库的形式提供给python的，使用
+                  #前先导入python自带的ctypes模块，以使用C动态库
+    dll = ctypes.cdll.LoadLibrary('../libRMCPy_Interface.so') 
+                                                           #这一行用于导入动态库，单引号内为编译得到的动态库的路径。强烈建议使用绝对路径
+                                                           #其中库的名字是固定的，一般在bulid directory内
+							   #由于python脚本是由RMC程序调用的，所以这时的工作路径不是脚本文件所在的路径，而是调用RMC的路径(也就算打开终端的路径)，使用相对路径时需要注意
+    rand = dll.RandForPython 
+                             #当需要使用RMC内的函数时，可以先声明。这里'RandForPython'是动态库里的函数名，固定不变；
+                             #'rand'可有用户自由定义，相当于在python中的函数名，之后使用时'res = rand(arg)'即可。
+                             #动态库中包含的函数及其参数与返回类型在之后给出
+    rand.restype = ctypes.c_double 
+                                   #使用的RMC内函数有返回值时，必须在这里先将返回值类型设定，之后才能正常调用。
+                                   #函数的调用方式以及C++与python数据类型对照表均在之后仔细介绍
+
+
+
+
+    #每次需要抽样一个源粒子时，RMC实际上调用了一次python脚本的source函数。
+    #这个函数名是固定的，必须为source;
+    #有两个输入参数，由RMC主程序在计算时提供，第一个参数为进程编号（从0开始），第二个为该进程正在抽样第几个粒子。
+    #即使不使用这两项信息，也需要写在source函数的输入列表中。
+    def source(proc_id, num): 
+
+
+
+        ...
+
+
+
+        return [particle_type, position, direction, energy, wight, dtime, source_id]
+        #source函数最后需要返回粒子的信息，包括粒子类型、位置、方向、能量、速度、权重、时间、源编号；
+        #这些信息必须按照这个顺序返回给RMC。另外粒子类型的枚举值以及其他数据的单位和正常书写源描述输入卡时相同；
+        #粒子类型particle_type为整数，1代表中子，2代表光子，3代表电子；
+        #只输入能量即可，粒子速度在数据传回后由RMC计算。
+
+上述代码中需要注意的事项已添加在注释中，使用此功能前请 **务必** 认真阅读。
+
+数据类型
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+python与C的数据类型不完全相同，在python里调用C的函数时要对数据进行包装转化。在python文件中正常使用python语法所定义的数据即为python类型，在python里需要兼容C类型时，须包装成ctypes类型。 :numref:`data_comparision` 中定义了一些和C兼容的基本数据类型，。
+
+.. table:: python与C的数据对照表
+  :name: data_comparision
+
+  =========================  ============================================  ==================
+  ctypes类型                 C类型                                         python类型
+  =========================  ============================================  ==================
+  c_bool                     _Bool                                         bool(1)
+  c_char                     char                                          单字符字节串对象
+  c_wchar                    wchar_t                                       单字符字符串
+  c_byte                     char                                          int
+  c_ubyte                    unsigned char         			   int
+  c_short                    short                 		  	   int
+  c_ushort                   unsigned short         			   int
+  c_int                      int                     			   int
+  c_uint                     unsigned int             			   int
+  c_long                     long                   			   int
+  c_ulong                    unsigned long           			   int
+  c_longlong                  __int64 or long long         	           int
+  c_ulonglong                unsigned __int64 or unsigned long long        int
+  c_size_t                   size_t                         		   int
+  c_ssize_t                  ssize_t or Py_ssize_t                	   int
+  c_float                    float	                           	   float
+  c_double                   double                          		   float
+  c_longdouble               long double                  		   float
+  c_char_p                   char* (NUL terminated)          		   字节串对象或 None
+  c_wchar_p                  wchar_t* (NUL terminated)        		   字符串或 None
+  c_void_p                   void*                           		   int 或 None
+  =========================  ============================================  ==================
+
+ctypes类型的基本用法如下（以双精度浮点数类型double为例）：
+
+.. code-block:: python
+
+    energy_c = ctypes.c_double(4)   #声明并初始化一个c_double类型，其值为4
+    energy_c.value = 5              #可以使用".value"来重新赋值，等号右边必须为python类型
+    energy = energy_c.value         #".value"也可以用来读取c_double类型的值，得到python类型，进行运算
+
+    position_c = (ctypes.c_double * 3)(10, 0, 0)              
+                              #声明并初始化一个c_double数组类型
+    position = [position_c[0], position_c[1], position_c[2]]  
+                              #在需要读取c_double数组的值的时候，不需要".value"。此处的position为python的列表类型
+
+    rota_mat_d = ((ctypes.c_double * 3) * 3)((ctypes.c_double * 3)(0, 0, 0), (ctypes.c_double * 3)(0, 0, 0),
+                                               (ctypes.c_double * 3)(0, 0, 0))
+                              #定义一个c_double类型的3*3数组
+
+RMC函数使用
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+动态库中提供了一系列函数，供用户在编写子程序时更好地进行源描述。所有已实现的函数见 :numref:`C_function_list` 
+
+.. table:: 动态库C函数表
+  :name: C_function_list
+
+
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |函数名            |函数的功能                        |参数（顺序）               |返回值                    |
+  +==================+==================================+===========================+==========================+
+  |RandForPython     |用于生成随机数                    |无                         |double 0~1均匀分布随机数  |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |CalcNeuVel        |根据中子能量计算中子相对论速度    |double 中子能量            |double 中子速度           |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |SetRandSeed       | 用于修改随机数的种子             | unsigned long long 种子| 无                          |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |注：实际上Python脚本不需要返回速度，仅供用户可能的使用                                                      |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |Rotate            |将向量按旋转矩阵旋转              |double 3*3 旋转矩阵        |无                        |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double 1*3 需要旋转的向量  |                          |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |注：函数会直接把旋转后的向量保存到输入参数中（即传引用）                                                    |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |GetRotate         |计算从Z轴到参考向量的旋转矩阵     |double 3*3 旋转矩阵        |无                        |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double 1*3 参考向量        |                          |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |注：函数会直接把计算得到的旋转矩阵保存到输入参数中（即传引用）                                              |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |SampleDistriBias  |得到一个特殊分布的抽样值(有偏倚)  |int          分布类型      |double 抽样值             |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double     权重            |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double[n1] 分布值参数      |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int        分布值参数个数  |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double[n2] 概率参数        |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double[n2] 偏倚参数        |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int        概率参数个数    |                          |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |仅适用于离散值分布、区间均匀分布、分段线性差值分布、幂函数、指数函数分布；                                  |
+  |                                                                    			                       |
+  |类型的枚举值及其它输入参数与 :numref:`distribution_cards` 中相同（下同）；                                  |
+  |                                                                    			                       |
+  |偏倚抽样会改变粒子的权重，使用时必须传入粒子的权重，该函数会根据抽样结果自动对权重进行修正。                |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |SamplePosVecBias  |离散值分布的3维矢量抽样(有偏倚)   |double     权重            |double* 抽样结果          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double[n1] 分布值参数      |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int        分布值参数个数  |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double[n2] 概率参数        |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double[n2] 偏倚参数        |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int        概率参数个数    |                          |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |类型的枚举值为2，但不用输入。n1应该为n2的3倍；                                                              |
+  |                                                                    			                       |
+  |偏倚抽样会改变粒子的权重，使用时必须传入粒子的权重，该函数会根据抽样结果自动对权重进行修正；                |
+  |                                                                    			                       |
+  |不需要偏倚抽样时，概率参数与偏倚参数的输入相同即可。                                                        |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |SampleCellVecBias |离散值分布的栅元矢量抽样(有偏倚)  |double     权重            |int* 抽样结果             |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int[]      分布值参数      |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int row    行数            |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int col    列数            |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double[n2] 概率参数        |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double[n2] 偏倚参数        |                          |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |类型的枚举值为3，但不用输入。分布值参数为1维数组，是把一个2维数组从左到右、从上到下写成一排，               |
+  |这个2维数组的每一行为一个栅元向量，长度不一致时左对齐，后置零                                               |
+  |                                                                    			                       |
+  |row为参数value的行数，代表栅元向量的个数，应与Prob和Bias的元素个数相同	                                    |
+  |                                                                    			                       |
+  |返回值中已将末端的0删去                                             		                            |
+  |                                                                    			                       |
+  |偏倚抽样会改变粒子的权重，使用时必须传入粒子的权重，该函数会根据抽样结果自动对权重进行修正；                |
+  |                                                                    			                       |
+  |不需要偏倚抽样时，概率参数与偏倚参数的输入相同即可。                                                        |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |SampleDistri      |得到一个特殊分布的抽样值(无偏倚)  |int          分布类型      |double 抽样值             |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double[n1] 分布值参数      |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int        分布值参数个数  |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double[n2] 概率参数        |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int        概率参数个数    |                          |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |仅适用于离散值分布、区间均匀分布、分段线性差值分布、幂函数、指数函数分布；                                  |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |SampleSpectrum    |得到一个谱分布的抽样值            |int          分布类型      |double 抽样值             |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double[n]  概率参数        |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int        概率参数个数    |                          |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |仅适用于麦克斯维裂变谱、瓦特裂变谱、高斯聚变谱、蒸发能量，不支持偏倚；                                      |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |IsInCell          |用于判断粒子是否在栅元内          |double[3] 位置             |bool 是否在栅元内         |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double[3] 方向             |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double[n] 栅元向量         |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int 栅元向量层级数         |                          |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |如果是则将粒子的坐标和飞行方向平移和旋转至重复几何结构中相应的位置        	   	                      |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |LocateCell        |输入粒子的位置、方向              |double[3] 位置             |无                        |
+  |                  |                                  |                           |                          |
+  |                  |粒子所在栅元向量                  |double[3] 方向             |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int[n]    栅元向量         |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int 栅元向量层级数         |                          |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |没有返回值，把栅元向量作为输入参数，函数中对其进行修改，执行函数后调用即可	   	                  |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |GetMatCs          |材料在某温度下与中子的某种反应截面|int 材料编号（用户）       |double 反应截面           |
+  |                  |                                  |                           |                          |
+  |                  |                                  |double 中子能量            |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |tmp 环境温度               |                          |
+  |                  |                                  |                           |                          |
+  |                  |                                  |int 核反应类型             |                          |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+  |(目前只支持中子)材料编号是用户编号，和材料输入卡的编号相同；温度单位与cell卡中tmp选项相同；                 |
+  |                                                                    			                       |
+  |为多核素加和后的截面。多群情况下支持总截面'1'、吸收截面'2'、散射截面'3'、裂变截面'4'                        |
+  |（加和时已乘以裂变中子数）；                                          			                 |
+  |                                                                    			                       |
+  |连续能量在使用TMS时只支持Major XS，不使用时支持总截面'1'、裂变截面'4'（加和时已乘以裂变中子数）。           |
+  |                                                                    			                       |
+  |在材料卡选择连续能量时，使用此函数也只能调用连续能量截面的功能，多群情况亦然。                              |
+  +------------------+----------------------------------+---------------------------+--------------------------+
+
+在使用函数编写自定义外源子程序时需要注意以下几点：
+
+#.  使用ctypes从动态库中导入的C函数，其输入参数必须为ctypes类型；
+#.  使用ctypes从动态库中导入的C函数，其返回值经过"restype"设定后，实际上为python类型；
+#.  整个python子程序(source函数)返回给RMC程序的数据必须为python类型；
+#.  source函数返回给RMC程序的数据中，粒子类型与源编号必须是整数，能量、速度、权重、时间必须为浮点数，位置和方向必须为 **元组** 而非 **列表** ；
+#.  可以使用 "ctypes.byref(position_c)" 来传引用给C函数。
+#.  对于SamplePosVecBias、SampleCellVecBias这两个函数，返回值为指针类型，使用时应如下设置：
+
+.. code-block:: python
+
+	import ctypes
+	dll = ctypes.cdll.LoadLibrary('../libRMCPy_Interface.so')
+
+	SamplePos = dll.SamplePosVecBias
+	SamplePos.restype = ctypes.POINTER(ctypes.c_double)
+	SampleCell = dll.SampleCellVecBias
+	SampleCell.restype = ctypes.POINTER(ctypes.c_int)
+	#POINTER意为指针
+	...
+	cellvecs = (ctypes.c_int * 9)(3, 8, 11,3, 7, 9,3, 5, 13)
+	prob = (ctypes.c_double * 3)(1.5, 0.4, 0.1)
+	bias = (ctypes.c_double * 3)(1.5, 0.4, 0.1)
+	w = ctypes.c_double(1)
+	result = SampleCell(ctypes.byref(w), testpos, 3,3, testprob, testbias)
+	#得到的返回值result是一个指针，ctypes类型中的指针和数组和C不同，不能混用，通过上述方式得到的返回值是指针，
+	#想要用它作为LocateCell等的输入参数时，要先用result.contents得到指针的内容
+	#可以通过result[i]直接访问某个位置的值，但它不等同于列表，可通过下面的方式转换（不确定长度的情况下）
+	result_list = []
+    	i = 0
+    	while result[i] != 0:
+        	result_list.append(result[i])
+        	i += 1
+    	print(result_list)
+
+
+外源子程序示例
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    import ctypes
+    import math
+
+    dll = ctypes.cdll.LoadLibrary('../cmake-build-debug/libRMCPy_Interface.so')
+    rand = dll.RandForPython
+    rand.restype = ctypes.c_double
+
+    GetNeuVel = dll.CalcNeuVel
+    GetNeuVel.restype = ctypes.c_double
+    # GetNeuVel.argtypes = [ctypes.c_double]
+
+    Rotate = dll.Rotate
+    GetRotate = dll.GetRotate
+    SampleSrcBias = dll.SampleDistriBias
+    SampleSrcBias.restype = ctypes.c_double
+    SampleSrc = dll.SampleDistri
+    SampleSrc.restype = ctypes.c_double
+    SampleSpectrum = dll.SampleSpectrum
+    SampleSpectrum.restype = ctypes.c_double
+    CheckCell = dll.IsInCell
+    CheckCell.restype = ctypes.c_bool
+    GetMatCs = dll.GetMatCs
+    GetMatCs.restype = ctypes.c_double
+
+
+    def source(proc_id, num):
+        particle_type = 1
+        position_c = (ctypes.c_double * 3)(0, 0, 0)
+        direction_c = (ctypes.c_double * 3)(0, 0, 0)
+        energy_c = ctypes.c_double(1)
+        velocity_c = ctypes.c_double()
+        wight_c = ctypes.c_double(1)
+        source_id = 0
+        r1 = rand()
+        if r1 < 0.3:
+        wight_c.value = wight_c.value * 0.8 / 0.3
+        x = ctypes.c_double()
+        y = ctypes.c_double()
+        z = ctypes.c_double()
+        extent = ctypes.c_double(0)
+        value = (ctypes.c_double * 4)(-1, 0.5, 0.9, 1)
+        prob = (ctypes.c_double * 3)(1.5, 0.4, 0.1)
+        bias = (ctypes.c_double * 3)(0.5, 0.7, 0.8)
+
+        #根据分布进行抽样
+        extent.value = SampleSrcBias(4, ctypes.byref(wight_c), value, 4, prob, bias, 3)
+        energy_c.value = SampleSrc(5, (ctypes.c_double * 3)(7, 10, 13), 3, (ctypes.c_double * 3)(0, 1, 0), 3)
+
+        #根据extent向量抽样粒子位置
+        z.value = extent.value
+        r2 = rand()
+        x.value = math.sqrt(1.0 - z.value ** 2) * math.cos(2 * math.pi * r2)
+        y.value = math.sqrt(1.0 - z.value ** 2) * math.sin(2 * math.pi * r2)
+        position_c[0] = x.value
+        position_c[1] = y.value
+        position_c[2] = z.value
+        rota_mat = ((ctypes.c_double * 3) * 3)((ctypes.c_double * 3)(0, 0, 0), (ctypes.c_double * 3)(0, 0, 0),
+                                               (ctypes.c_double * 3)(0, 0, 0))
+        GetRotate(ctypes.byref(rota_mat), (ctypes.c_double * 3)(4, 2, 0))
+        Rotate(ctypes.byref(rota_mat), ctypes.byref(position_c))
+        position_c[0] *= 12
+        position_c[1] *= 12
+        position_c[2] *= 12
+        position_c[0] += -50
+
+        #抽样粒子的方向，并根据在面源上的位置旋转
+        a = rand()
+        b = rand()
+        d3 = math.sqrt(a)
+        d1 = math.sqrt(1 - d3 ** 2) * math.cos(2 * math.pi * b)
+        d2 = math.sqrt(1 - d3 ** 2) * math.sin(2 * math.pi * b)
+        direction_c[0] = d1
+        direction_c[1] = d2
+        direction_c[2] = d3
+        surf_norm_vector = (ctypes.c_double * 3)(position_c[0] + 50, position_c[1], position_c[2])
+        rota_mat_d = ((ctypes.c_double * 3) * 3)((ctypes.c_double * 3)(0, 0, 0), (ctypes.c_double * 3)(0, 0, 0),
+                                               (ctypes.c_double * 3)(0, 0, 0))
+        GetRotate(ctypes.byref(rota_mat_d), surf_norm_vector)
+        Rotate(ctypes.byref(rota_mat_d), ctypes.byref(direction_c))
+
+        source_id = 1
+
+        else:
+        is_in_cell = False
+        cell_vec = (ctypes.c_int*1)(30)
+        wight_c.value = wight_c.value * 0.2 / 0.7
+        initial_weight = wight_c.value
+
+        #不在栅元时，重新抽样
+        while not is_in_cell:
+            wight_c.value = initial_weight
+
+            x = ctypes.c_double(1)
+            y = ctypes.c_double(2)
+            z = ctypes.c_double(3)
+            miu = ctypes.c_double()
+
+            #抽样粒子的位置
+            x.value = SampleSrc(4, (ctypes.c_double * 2)(20, 30), 2, (ctypes.c_double * 1)(1), 1)
+            y.value = SampleSrc(4, (ctypes.c_double * 2)(-17, 36), 2, (ctypes.c_double * 1)(1), 1)
+            z.value = SampleSrc(4, (ctypes.c_double * 2)(-10, 10), 2, (ctypes.c_double * 1)(1), 1)
+            miu.value = SampleSrcBias(-2, ctypes.byref(wight_c), (ctypes.c_double * 2)(-1, 1), 2, (ctypes.c_double * 1)(0),
+                                      (ctypes.c_double * 1)(1.5), 1)
+            energy_c.value = SampleSpectrum(-4, (ctypes.c_double * 2)(0.965, 2.29), 2)
+
+            position_c[0] = x.value
+            position_c[1] = y.value
+            position_c[2] = z.value
+
+            #根据vector抽样粒子的方向
+            vector = (ctypes.c_double * 3)(-3, 1, 0)
+            dx = ctypes.c_double()
+            dy = ctypes.c_double()
+            dz = ctypes.c_double()
+            dz.value = miu.value
+            r3 = rand()
+            dx.value = math.sqrt(1.0 - dz.value ** 2) * math.cos(2 * math.pi * r3)
+            dy.value = math.sqrt(1.0 - dz.value ** 2) * math.sin(2 * math.pi * r3)
+            direction_c[0] = dx.value
+            direction_c[1] = dy.value
+
+            direction_c[2] = dz.value
+            rota_mat = ((ctypes.c_double * 3) * 3)((ctypes.c_double * 3)(0, 0, 0), (ctypes.c_double * 3)(0, 0, 0),
+                                                   (ctypes.c_double * 3)(0, 0, 0))
+            GetRotate(ctypes.byref(rota_mat), vector)
+            Rotate(ctypes.byref(rota_mat), ctypes.byref(direction_c))
+
+            #判断是否在栅元里
+            is_in_cell = CheckCell(ctypes.byref(position_c) ,ctypes.byref(direction_c), cell_vec, 1)
+        source_id = 2
+
+        #整理结果并返回
+        position = (position_c[0], position_c[1], position_c[2])
+        dtime = 0
+        direction = (direction_c[0], direction_c[1], direction_c[2])
+        energy = energy_c.value
+        weight = wight_c.value
+        return [particle_type, position, direction, energy, weight, dtime, source_id]
+
+以上子程序与下面的源描述卡等价：
+
+.. code-block:: c
+
+    EXTERNALSOURCE
+    source 1 fraction=0.8 biasfrac=0.3 particle=1 surface=10 axis=4 2 0  extent=d1  energy=d2
+    //  使用分布描述extent变量 区间均匀分布
+    //     position biasing on the surface
+    distribution 1 type=4 value=-1 .5 .9 1 probability=1.5 0.4 0.1 bias=.5 .7 .8
+    // 能量概率密度函数：分段线性插值
+    distribution 2 type=5 value=7 10 13 probability=0 1 0
+    source 2 fraction=0.2 biasfrac=0.7 particle=1 cell=30 x=d11 y=d12 z=d13  vector=-3 1 0
+             direcMiu=d14 energy=d15
+    //  分布1 区间均匀分布
+    //     sample x for the cell cover
+    distribution 11 type=4 value=20 30  probability=1
+    //  sample y for the cell cover
+    distribution 12 type=4 value=-17 36 probability=1
+    //  sample z for the cell cover
+    distribution 13 type=4 value=-10 10 probability=1
+    //  exponential biasing in the cell
+    distribution 14 type=-2 value=-1 1.0 probability=0 bias=1.5
+    distribution 15 type=-4 probability=0.965 2.29//瓦特裂变谱，默认参数
+
+点计数器修正子程序
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+在同时使用外源子程序与点计数器时，必须提供这个子程序，以对各向同性假设进行修正。
+
+参看理论手册1.6.4节中点计数器的原理，用 :math:`p(\mu)` 表示出射粒子的方向朝着探测器的概率。考虑从源点出射的粒子，对于各项同性的源，这个值恒为0.5，而对于用户自定义的源，需要用户自己根据源的实际情况，提供一个额外的点计数器修正子程序。RMC在每次点计数器统计到源点时，会调用一次子程序，传给子程序粒子所属的源编号、粒子位置，以及粒子与探测器连线的方向向量，子程序运算后，传回给RMC一个 :math:`p(\mu)` 值。
+
+以下为这个子程序的示例，需要注意的点已在注释中给出。
+
+.. code-block:: python
+
+    # 同样的，每次调用子程序，实际上只调用了这个函数。函数名必须是"clac_psc"（文件名可以任意）
+    def clac_psc(source_id, Pos, Dir):
+
+        # 仅为示例，用户根据源编号以及粒子的位置来进行不同的处理，把p值返回给RMC
+        if source_id == 1:
+        return 0.5
+        elif source_id == 2:
+        return 0.5
+        else:
+        return 0
 
