@@ -354,7 +354,9 @@ Distribution选项卡
 
 -  **Probability**\ 指定分布的概率分布参数，具体要求见 :numref:`distribution_cards` 。
 
--  **Bias**\ 指定分布的偏倚抽样概率分布参数，具体要求见 :numref:`distribution_cards` 。
+-  **Bias**\ 指定分布的偏倚抽样概率分布参数，具体要求见 :numref:`distribution_cards` 。当使用\ **Bias**\ 时，
+   实际抽样时将以\ **Bias**\ 后指定的概率替代\ **Probability**\ 的概率，但是相应地，粒子的初始权重将会被调整为：
+   \ **Probability**\ 的概率 / \ **Bias**\ 的概率。
 
 .. table:: Distribution卡支持的分布类型及参数
   :name: distribution_cards
