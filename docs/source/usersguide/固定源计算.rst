@@ -16,7 +16,7 @@ RMC支持固定源计算功能。固定源功能用于已知外中子源的情�
 .. code-block:: none
 
     FixedSource
-    PARTICLE population=<N>  fission=<fN fP>
+    PARTICLE population=<N>  fission=<fN fP> 
 
 
 
@@ -29,6 +29,28 @@ RMC支持固定源计算功能。固定源功能用于已知外中子源的情�
 -  **fission**\ 指定是否关闭裂变中子和光子，如果fN为0则表示关闭裂变中子，
    如果fN为1则表示打开裂变中子，如果fP为0则表示关闭裂变光子，
    如果fP为1则表示关闭裂变光子。
+
+
+.. _section_fixedsource_adjoint:
+
+伴随计算
+---------------------
+
+目前RMC支持在固定源模式下使用伴随计算对正向问题的伴随问题进行计算，同时也可以计算伴随通量。
+这个功能的基本逻辑是对粒子在发生碰撞之后的（即抽样自由程之后）抽样碰撞粒子和中子碰撞之后的状态进行调整。本质上是使用多群正向截面
+生成一套伴随计算截面，并使用伴随截面进行碰撞核素的抽样和调整中子出射状态进行更新，使之满足伴随输运的逻辑:
+
+.. code-block:: none
+
+    Adjoint [ADJOINTCALCULATION=<N> MaxAdjointEnergy=<maxNeuErg maxPhoErg>]
+
+-  **Adjoint**\ 为伴随计算相关选项
+
+-  **ADJOINTCALCULATION**\ 选项卡指定本次计算中使用固定源伴随计算，在程序内部将会生成使用伴随计算使用的伴随截面。此选项设置为1则开启固定源伴随计算的功能。
+
+-  **MaxAdjointEnergy**\ 为固定源多群伴随计算模拟的粒子能量上限，必须和ADJOINTCALCULATION选项卡一起使用，此选项中需要输入两个数字，分别为伴随中子和伴随光子的能量上限，单位为MeV,两者默认值均为20MeV，当伴随粒子能量超过这个值之后就会被杀死；
+
+
 
 .. _section_fixedsource_rng:
 
