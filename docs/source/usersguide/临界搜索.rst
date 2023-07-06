@@ -4,7 +4,162 @@
 ===========================
 
 
-RMC支持在临界和燃耗模式下临界搜索，包括材料的核素密度搜索和几何的面位置搜索。
+RMC支持在临界和燃耗模式下临界搜索，包括材料的核素密度搜索和几何的面位置搜索，其中材料的核密度搜索基于材料密度微扰。
+RMC也同时支持单独使用微扰功能，目前RMC支持的材料密度微扰以及温度微扰功能全部在临界搜索模块内，需要注意的是材料温度
+微扰考虑的是多普勒效应，即温度对核素微观截面的影响，而材料密度微扰考虑的是材料密度变化对响应量的扰动，具体使用方法见
+以下的输入卡说明。
+
+材料密度微扰和温度微扰模块输入卡
+------------------------------------------------------------
+
+.. code-block:: none
+
+    CriticalitySearch
+    Differentialoperator <id> [cell=<cell_vector>] [material=<mat id>] [nuclide=<nuc>] [variable=<param>]
+        [estimator=<param>] [order=<param>] [sourceperb=<param>] [batchcycle=<param>]  [outputbycycle=<param>]
+        [crosssection=<param>] [response=<param>] [matnameid=<param>] [pressure=<param>]
+
+
+其中，
+
+-  **CriticalitySearch**\ 为临界搜索模块关键词；
+
+-  **differentialoperator**\ 为微分算符法输入卡，支持多个同时使用，其后紧跟的id须不同；
+
+-  **cell**\ 为截面扰动的栅元向量，层级输入格式和celltally中一致，缺省时仅material定位，否则cell和material采用与关系共同定位；
+
+-  **material**\ 为扰动材料在material卡中的id，不可缺省；
+
+-  **nuclide**\ 为扰动核素的zaid，不可缺省；
+
+-  **variable**\ 为扰动类型，1-材料密度微扰（默认值），2-材料温度微扰；
+   材料密度微扰考虑材料密度变化对响应物理量（如Keff或功率）的扰动，如果用户没有使用matnameid输入卡，则程序计算结果只会给出响应物理量
+   对扰动材料的扰动核素的原子密度和质量密度的敏感性系数，该结果是准确的。如果使用了matnameid输入卡，则程序会根据质量密度系数继续
+   计算出材料温度系数，不过该结果仅供参考，因为计算过程中涉及材料热物性，而同一种材料的热物性通常对于不同的用户以及不同的应用领域是
+   有所差异的。温度微扰考虑的是温度对核素微观截面的扰动进而造成对响应物理量的扰动。
+
+   注意：由于温度微扰功能需要基于高斯厄尔米特求积方法计算截面导数，因此需要在材料输入卡模块的打开OTFDB；
+
+-  **estimator**\ 扰动的keff估计器，0-碰撞估计器（默认值），1-吸收估计器，2-径迹长度估计器；
+   注意：TMS模式下只能使用吸收估计器；
+
+-  **order**\ 扰动的阶数，1-一阶微扰，2-二阶微扰（默认值）；
+
+-  **sourceperb**\ 是否使用源扰动，0-不使用（默认值），1-使用；使用源扰动计算更加精确，但同时耗时增加；
+
+-  **batchcycle**\ 为使用源扰动时batch中的代数，默认值为5；
+
+-  **outputbycycle**\ 是否每代输出微扰系数，0-仅最后一代输出（默认值），1-每代输出；
+
+-  **crosssection**\ 微扰截面类型，仅对温度微扰即variable=2时使用，1-总截面（默认值），2-弹性散射截面，3-裂变截面，4吸收截面，
+   用户可以输入多个值，表示同时扰动多种截面，但总截面不能与其他截面同时扰动。对于材料密度微扰即variable=1时即使用户输入了非1的值，
+   程序也会默认使用1；
+
+-  **response**\ 响应量，1-有效增殖因子（默认值），2-功率；
+
+-  **tallycell**\ 仅响应量为功率时使用，表示功率微扰的响应栅元，可以输入多个栅元展开式（即对多个栅元进行功率微扰统计），层级输
+   入格式和celltally中一致该选项卡可以缺省，缺省时表示模型中所有栅元都进行功率微扰响应。
+
+-  **matnameid**\ 材料名称编号，仅材料密度微扰使用，用于计算材料温度系数，即响应物理量对材料温度的敏感性系数（只考虑温度对材料密度的
+   影响进而对响应物理量产生扰动），1-纯水、2-重水、3-含硼水、4-固态金属铍、5-固态氧化铍，默认值为空。若用户输入的是1、2、3，且没
+   有使用gramdenpoly输入卡，则还必须使用pressure输入卡给出材料的压强。
+
+   注意：用户在使用matnameid时表示对整个材料进行扰动，因此nuclide输入卡应该包含扰动材料的中的所有核素，否则程序会报错。同时在使用
+   matnameid输入卡时程序也会对material输入卡进行检查，以保证用户输入的材料名称与扰动材料中核素组成是自洽的（如含硼水中不允许包含除
+   H、O、B之外的核素），但是这种检查只是必要性检查而非充分性检查，用户需要对两者的自洽性负责，否则计算出的材料温度系数很可能不准确。
+
+-  **gramdenpoly**\ 材料密度与温度的多项式关系式系数，需要与matnameid卡一起使用，用户若要指定密度与温度的多项式关系为
+   :math:`\rho(g/cm^3)=aT^4+bT^3+cT^2+dT(K)+e` ，则该输入卡应该输入gramdenpoly = `e d c b a` , 用户最多可输入五个参数，
+   即多项式最高阶数为4阶。如果用户输入了该输入卡，则程序会根据上述多项式计算材料密度对温度的导数，然后将材料密度系数转化为材料温度系数。
+   否则，对于纯水、重水，程序使用第三方库CoolProp计算一定压强和密度下材料密度对温度的一二阶导数；对于硼水，RMC会根据硼浓度和水的物性
+   计算其密度对温度的一二阶导数；对于Be，RMC根据公式：
+
+   .. math::
+      \rho(kg/m^3) = 1869.84 -0.07168\ T(K) - 1.6151E-5\ T^2
+
+   计算其密度对温度的一二阶导数；对于BeO，RMC根据公式:
+
+   .. math::
+      \rho(kg/m^3) = &2870 - 4.419513\times 10^{-2}\ t(^{\circ}C) - 4.00365\times 10^{-5}\ t^2 + \\
+                     &1.325079\times 10^{-9}\ t^3 + 3.117681\times 10^{-12}\ t^4
+
+   计算其密度对温度的一二阶导数。
+
+-  **pressure**\ 材料所处压强值，单位为MPa，默认值为15.5。需要与matnameid卡一起使用，只有matnameid卡中输入的值为1、2或3，且没有
+   使用gramdenpoly卡时才需要使用该输入卡。
+
+材料密度微扰和温度微扰模块输入示例
+---------------------------------------------------------------
+
+以下算例为对栅元3材料1中第三种核素分别进行材料密度微扰和温度微扰，并且分别设置响应量为有效增殖因子和栅元3的功率值，
+采用碰撞估计器，同时使用源扰动，batch代数为5，仅最后一代输出，扰动截面为总截面，进行功率微扰时仅对功率计数器中的栅
+元3进行功率微扰统计。
+
+.. code-block:: none
+
+    CRITICALITYSEARCH
+    DifferentialOperator 1 cell = 3 
+                           material = 1
+    					   nuclide = 92235 92238 8016
+    					   variable = 1
+    					   estimator = 0
+                           order = 2
+    					   sourceperb = 1
+    					   batchcycle = 5
+    					   outputbycycle = 0
+    					   crosssection = 1
+                           response = 1
+    DifferentialOperator 2 cell = 3 
+                           material = 1 
+    					   nuclide = 92235 92238 8016 
+    					   variable = 1 
+    					   estimator = 0
+                           order = 2
+    					   sourceperb = 1 
+    					   batchcycle = 5 
+    					   outputbycycle = 0 
+    					   crosssection = 1 
+    					   response = 2 
+    					   tallycell = 3
+    DifferentialOperator 3 cell = 3
+                           material = 1 
+    					   nuclide = 92235 92238 8016 
+    					   variable = 2 
+    					   estimator = 0
+                           order = 2
+    					   sourceperb = 1
+    					   batchcycle = 5 
+    					   outputbycycle = 0 
+    					   crosssection = 1 
+    					   response = 1
+    DifferentialOperator 4 cell = 3 
+    				       material = 1 
+    					   nuclide = 92235 92238 8016
+    					   variable = 2 
+    					   estimator = 0
+                           order = 2
+    					   sourceperb = 1 
+    					   batchcycle = 5 
+    					   outputbycycle = 0 
+    					   crosssection = 1 
+    					   response = 2 
+    					   tallycell = 3
+    
+材料密度微扰和温度微扰输出文件
+----------------------------------------
+
+微扰的信息在.critisearch和.Result.h5文件中，包含各个微分算符法的一、二阶微扰系数及其相对标准偏差，对于材料密度微扰，
+.critisearch文件中输出的微扰系数是响应物理量对参数\ *a*\的导数（定义为 :math:`\Sigma_{x} = \ a\rho_{0}\sigma` ，
+其中Σ\ :sub:`x`\  为扰动核素的扰动宏观截面，则Δ\ *a*\ 为扰动核素的原子密度的相对变化，具体理论见理论手册），
+对于温度微扰输出的微扰系数就是响应物理量子对温度的导数。用户无需关注.critisearch文件，只需查看.Result.h5文件中的计算结果。
+
+.. code-block:: none
+
+    Cycle  Perb   First_Ave   First_Re    Second_Ave  Second_Re
+    500    1      2.00266E-02 5.05356E-02 -2.29077E-01 3.55684E-02
+    500    2      9.21668E-01 8.11286E-02 -1.66088E+01 3.62169E-02
+    500    3      -3.05118E-05 2.19892E-02 7.03561E-09 1.14198E+00
+    500    4      -2.26579E-03 2.19197E-02 5.43628E-07 1.09280E+00
 
 材料搜索模块输入卡
 -----------------------
@@ -13,8 +168,9 @@ RMC支持在临界和燃耗模式下临界搜索，包括材料的核素密度�
 
     CriticalitySearch
     Materialsearch target=<param> error=<param> max=<maximum> perb=<differentialoperator id>
-    Differentialoperator <id> [cell=<cell_vector>] material=<mat id> nuclide=<nuc>
-        [estimator=<param>] [order=<param>] [sourceperb=<param>] [batchcycle=<param>]  [outputbycycle=<param>]
+    Differentialoperator <id> [cell=<cell_vector>] [material=<mat id>] [nuclide=<nuc>] [variable=<param>]
+        [estimator=<param>] [sourceperb=<param>] [batchcycle=<param>]  [outputbycycle=<param>]
+        [crosssection=<param>] [response=<param>]
 
 
 其中，
@@ -38,80 +194,65 @@ RMC支持在临界和燃耗模式下临界搜索，包括材料的核素密度�
 
 -  **perb**\ 为搜索使用的微分算符法的id，对应于differentialoperator输入卡；
 
--  **differentialoperator**\ 为微分算符法输入卡，支持多个同时使用，其后紧跟的id须不同；
-
--  **cell**\ 为扰动栅元向量，层级输入格式和celltally中一致，缺省时仅material定位，否则cell和material采用与关系共同定位；
-
--  **material**\ 为扰动材料在material卡中的id，不可缺省；
-
--  **nuclide**\ 为扰动核素的zaid；
-
--  **estimator**\ 扰动的keff估计器，0-碰撞估计器，1-吸收估计器，2-径迹长度估计器；注意:TMS模式下只能使用吸收估计器；估计器编号随版本有变动
-
--  **order**\ 为扰动的最高阶数，1-一阶，2-二阶；
-
--  **sourceperb**\ 是否使用源扰动，0-不使用（默认值），1-使用。使用源扰动计算更加精确，但同时耗时增加；
-
--  **batchcycle**\ 为使用源扰动时batch中的代数，默认值为5；
-
--  **outputbycycle**\ 是否每代输出微扰系数，0-仅最后一代输出（默认值），1-每代输出。
+-  **differentialoperator**\ 为微分算符法输入卡，其使用方法在材料密度微扰和温度微扰中已经介绍过，此处不再赘述。
 
 材料搜索模块输入示例
 --------------------------
 
-以下算例为对栅元2材料2中第一个核素密度进行搜索，目标值为1，阈值为0.01，最大迭代次数为3，
-搜索方法为利用二阶微分算符法对keff碰撞估计器的微扰系数进行类牛顿迭代法，
-同时使用源扰动，batch代数为5，仅最后一代输出。
+以下算例为对栅元3材料1中ZAID为92235的核素密度进行搜索，目标值为1，阈值为0.02，最大迭代次数为5，
+微分算符法采用碰撞估计器，同时使用源扰动，batch代数为5，仅最后一代输出。
 
 .. code-block:: none
 
     CRITICALITYSEARCH
-    materialsearch
-    max = 3
-    target = 1
-    error = 0.0
-    perb = 1
-    differentialoperator 1
-    cell = 2
-    material = 2
-    nuclide = 92235
-    estimator = 2
-    order = 2
-    sourceperb = 1
-    batchcycle = 5
-    outputbycycle = 0
+    Materialsearch target=1.23 error=0.02 max=5 perb=1
+    DifferentialOperator 1 cell = 3 
+                       material = 1 
+                       nuclide = 92235 
+                       variable = 1
+                       estimator = 0
+                       order = 2
+                       sourceperb = 1 
+                       batchcycle = 5 
+                       outputbycycle = 0
+                       response = 1
 
 材料搜索输出文件
 ----------------------
 
 材料搜索的信息在.critisearch文件中，包含各个微分算符法的一、二阶微扰系数及其相对标准偏差，
-临界迭代时当前keff和标准差，搜索核素原子密度在迭代前后的值，
-用-->分割。
+临界迭代时当前keff和标准差，搜索核素原子密度在迭代前后的值，用-->分割。对于各个微分算符法的
+一、二阶微扰系数用户可直接查看.Result.h5文件。
 
 .. code-block:: none
 
     Cycle  Perb   First_Ave   First_Re    Second_Ave  Second_Re
-    100    0      2.94622E-01 1.77817E-01 4.65745E-02 7.85989E+00
-    Iter   Nuc    keff                    Atom Density
-    0      1      0.968321 +- 0.007071    9.88665E-03 --> 1.09408E-02
+    50     1      2.49773E-02 4.85185E+00 -4.22016E-02 8.69707E+00
+    Iter   Nuc        keff                     Atom Density                   Gram Density
+    0      92235.71c  1.218068 +- 0.012354     9.10578E-04 --> 1.34558E-03    -3.55398E-01 --> -5.25179E-01
 
     Cycle  Perb   First_Ave   First_Re    Second_Ave  Second_Re
-    100    0      4.44978E-01 1.35197E-01 3.32123E-02 8.53374E+00
-    Iter   Nuc    keff                    Atom Density
-    1      1      0.987481 +- 0.009976    1.09408E-02 --> 1.12483E-02
+    50     1      2.73379E-01 5.61727E-01 -8.78828E-01 6.68638E-01
+    Iter   Nuc        keff                     Atom Density                   Gram Density
+    1      92235.71c  1.301338 +- 0.014911     1.34558E-03 --> 9.94452E-04    -5.25179E-01 --> -3.88134E-01
 
     Cycle  Perb   First_Ave   First_Re    Second_Ave  Second_Re
-    100    0      2.53745E-01 2.90857E-01 -4.64625E-02 3.47310E+00
-    Iter   Nuc    keff                    Atom Density
-    2      1      0.968038 +- 0.009095    1.12483E-02 --> 1.26652E-02
+    50     1      1.66851E-01 4.64208E-01 -4.77677E-01 6.47156E-01
+    Iter   Nuc        keff                     Atom Density                   Gram Density
+    2      92235.71c  1.253746 +- 0.011225     9.94452E-04 --> 8.52920E-04    -3.88134E-01 --> -3.32894E-01
 
     Cycle  Perb   First_Ave   First_Re    Second_Ave  Second_Re
-    100    0      3.13533E-01 1.80227E-01 -1.35241E-03 1.64309E+02
-    Iter   Nuc    keff                    Atom Density
-    3      1      0.973322 +- 0.010536    1.26652E-02 --> 1.37428E-02
+    50     1      1.80428E-01 4.79098E-01 -2.63040E-01 1.30613E+00
+    Iter   Nuc        keff                     Atom Density                   Gram Density
+    3      92235.71c  1.196194 +- 0.011493     8.52920E-04 --> 1.01273E-03    -3.32894E-01 --> -3.95267E-01
 
     Cycle  Perb   First_Ave   First_Re    Second_Ave  Second_Re
-    100    0      2.69473E-01 2.54405E-01 1.06923E-02 9.01484E+00
+    50     1      1.35776E-01 1.13751E+00 -5.65172E-01 4.01294E-01
+    Iter   Nuc        keff                     Atom Density                   Gram Density
+    4      92235.71c  1.275107 +- 0.012141     1.01273E-03 --> 6.76280E-04    -3.95267E-01 --> -2.63952E-01
+
+    Cycle  Perb   First_Ave   First_Re    Second_Ave  Second_Re
+    50     1      2.11684E-01 2.94337E-01 -3.85332E-01 6.42138E-01
 
 几何搜索模块输入卡
 -----------------------
