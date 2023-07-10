@@ -46,6 +46,84 @@ imp:n=1，imp:n=2，imp:p=0，imp:p=1，imp:p=2，imp:e=0，imp:e=1，imp:e=2，
 -  注意，同一种粒子权窗卡只能同时使用一种。比如对于中子，\ **WWN:N**\ 和
    \ **WWMESH:N**\ 只定义其中的一个就可以。若\ **WWP:N**\ 没有定义，则为默认值。
 
+兼容MCNP的网格权窗输入卡
+-----------------------------
+
+目前RMC兼容MCNP格式的网格权窗文件，可以使用MCNP减方差参数的WWE、WWN、WWP、WWINP卡片,不支持WWT卡。
+**MCNPWeightWindow**\ 为兼容MCNP权窗输入卡参数的关键词；
+
+.. code-block:: none
+
+    MCNPWeightWindow
+    WWE:N  E_1  E_2  E_3  E_4 … E_j
+    WWN1:N W_11  W_12  W_13  W_14 … W_1j
+    WWN2:N W_21  W_22  W_23  W_24 … W_2j
+    [WWP:N WUPN WSURVN MXSPLN MWHERE SWITCHN MTIME WNORM ETSPLT]
+    [WWINP  FileName]
+
+-  **WWE:N**\ 为中子的栅元权窗卡，E_1、E_2、E_3、E_4 … E_j分别表示每个栅元
+   的能量间隔，在WWN卡上将指定重量窗口的界限。最小能量不在WWE卡上输入，但被定义为零。
+
+-  **WWNi:N**\ 规定了栅元中与空间和能量相关的权窗的下限。如果权窗是能量相关的（即对不同能量的粒子也有权窗分裂），
+   则必须与WWE卡一起使用。粒子的权重界限总是绝对的，而不是相对的。如果同时使用了WWN卡和WWE卡，则用户必须为每个
+   栅元的每个能量均指定一个权窗下限，也就是说，假如WWE卡指定了n个能量分箱，此算例中共有m个栅元，则对每个i(1<=i<=n)
+   WWNi:N 后必须输入n个权窗下限，分别对应此栅元中的n个能量下限。
+
+-  **WWP:N**\ 为中子的权窗参数卡，\ **WUPN**\ 表示权窗上限与下限的倍数，
+   要求WUPN>2，默认值为5。\ **WSUV**\ 表示存活粒子权重与权窗下限的倍数，
+   要求1<WSURVN<WUPN，默认值为3。\ **MXSPLN**\ 大于1，表示一个粒子的最大分裂数 
+   \ **MWHERE**\ 表示权窗在何处使用，目前仅支持0，表示在粒子穿面和碰撞的时候使用权窗
+   \ **SWITCHN**\ 表示从何处得到权窗下限，目前仅支持<0 和=0两种情况，<0表示从WWINP中得到，=0 表示从WWN中得到，需要注意的
+   是这个参数必须与使用的卡片类型一致，即<0时必须使用WWINP; =0时必须使用WWN
+   \ **MTIME**\表示如何理解WWE卡片中的参数， =0 表示WWE中数字为权窗的能量网格，>0 表示WWE中数字为权窗的时间网格，目前仅支持MTIME=0
+   \ **WNORM**\表示权窗乘子，目前在RMC中不支持使用，必须设置为0;
+   \ **ETSPLT**\表示ESPLT和TSPLT的使用方式，目前RMC中不支持使用这两种卡片，需要将此参数设置为0;
+   
+-  **WWINP**\ 为RMC读取MCNP的权窗文件格式功能卡，FileName为MCNP权窗格式文件名。需要注意的是，使用WWINP输入时
+   一定使用网格权窗，此权窗在使用的时候会生成一个编号为99的网格计数器，并且在使用WWINP卡的时候与WWN卡不兼容。
+
+
+WWN卡和WWE卡（中子）示例
+
+.. code-block:: none
+
+    MCNPWeightWindow
+    WWE:N     e1  e2  e3
+    WWN1:N    w11  w12  w13  w14
+    WWN2:N    w21  w22  w23  w24
+    WWN3:N    w31  w32  w33  w34
+
+该示例定义了3个能量区间下的4个栅元的中子权窗下限。即0-e1能量分箱下cell1至cell4的权窗下限分别为w11、w12、w13、w14；以此类推。
+
+兼容MCNP的权窗生成器输入卡
+-----------------------------
+
+目前RMC兼容MCNP格式的权窗生成器，可以使用MCNP权窗生成功能的WWG、WWGE卡片。
+**MCNPWeightWindow**\为兼容MCNP权窗生成器输入卡的关键词；WWG卡和WWGE卡与任何一种权窗参数（WWE、WWN、WWP、WWINP卡片）均不可同时使用,另外目前
+RMC中的权窗生成器默认生成当前计算流程中所有涉及到的粒子的权窗。
+
+.. code-block:: none
+
+    MCNPWeightWindow
+    WWG  It  Ic  Wg  J1  J2  J3  J4  IE
+    WWGE E_1 E_2 … E_j j是任意正整数
+
+
+-  **WWG**\ 为权窗下限自动生成器参数卡，It表示参考的CellTally的计数器编号。Ic表示基于Cell（栅元）或基于Mesh（网格）的权重窗生成器，如果Ic>0，则调用基于Cell的权窗生成器，且参考栅元编号为Ic,此时不能输入REF卡；如果Ic<0，则调用基于Mesh的权窗生成器，此时Ic的绝对值就是参考的meshtally的网格的编号。Wg为参考的CellTally或参考MeshTally生成的权窗下限值，如果Wg=0，那么参考的CellTally或参考MeshTally的权窗下限为0.5倍源粒子权重，Wg默认值为0。J1-J4没有意义，为了保持与MCNP格式一致而保留。使用基于Mesh的权窗生成器的时候（Ic=0）必须指定一个MeshTally，此meshtally指定的网格即为权窗网格。IE为WWGEW输入卡的指定方式，目前仅支持IE=0，即将WWGE设置为能量网格。
+
+-  **WWGE**\ 为权窗下限自动生成器能量网格输入卡，E_1  E_2  E_3  E_4 … E_j 为能量网格的上边界。在进行权窗生成的时候默认0为最低能量。j最大为10000,超过这个数量的话会截断。
+
+
+WWG卡和WWGE卡示例
+
+.. code-block:: none
+
+    MCNPWeightWindow
+    WWG 1 1 0.001 0 0 0 0 0
+    WWGE:N 0.01 0.1 1 5
+
+该示例定义了一个基于MCNP格式的WWG卡片，针对编号为1的栅元计数器的统计结果进行权窗生成，参考栅元为1,权窗下限为0.0001，能量网格为0.01、0.1、1、5MeV
+
 源偏倚输入卡
 ----------------------
 
