@@ -17,7 +17,7 @@ RMC也同时支持单独使用微扰功能，目前RMC支持的材料密度微�
     CriticalitySearch
     Differentialoperator <id> [cell=<cell_vector>] [material=<mat id>] [nuclide=<nuc>] [variable=<param>]
         [estimator=<param>] [order=<param>] [sourceperb=<param>] [batchcycle=<param>]  [outputbycycle=<param>]
-        [crosssection=<param>] [response=<param>] [matnameid=<param>] [pressure=<param>]
+        [crosssection=<param>] [response=<param>] [matnameid=<param>] [pressure=<param>] [gramdenpoly=<param>]
 
 
 其中，
