@@ -14,7 +14,7 @@ RMC支持接续面源计算文件输出功能。接续面源计算，用于将�
     Binaryout
     WrtSurfSrc  Write=<flag>  SYMM=<symm>  PARTYPE = <parms>
                 Surf = <Surface_vector_group>  CeL=<cell_vector_group>
-                WCylces=<wcycles>
+                WCylces=<wcycles> Wssa=<flag>
 
 其中，
 
@@ -36,6 +36,13 @@ RMC支持接续面源计算文件输出功能。接续面源计算，用于将�
     或者沿与面3正法线方向夹角为正的径迹。如果Symm为2，则记录穿过面1且进入栅元2或者离开栅元3，或者穿过面3的径迹。
 
 -   **Wcycles**\ 是指接续计算中需要记录的活跃代数，如果不定义则默认记录全部活跃代数。
+
+-   **MCNP5_Wssa**\=1是指将RMC输出的接续面源文件转换为MCNP5-1.20和MCNP5-1.51格式的面源文件，**MCNP5_Wssa**\ 默认值为0，
+    并且0的时候不进行转换。**MCNP6_Wssa**\=1是指将RMC输出的接续面源文件转换为MCNP6.1.1格式的面源文件，**MCNP6_Wssa**\ 默认值为0，
+    并且0的时候不进行转换。该功能需要使用RMC的python框架进行计算，新建一个test文件夹，同时将RMC的python框架中的runner.py复制过来，
+    同时新建一个文件夹 workspace,将输入卡、RMC的可执行文件、xsdir,然后调用文件夹外的runner.py,运行命令为python3 runner.py
+    workspace/inp --mpi mpi核数。输出的MCNP格式的面源文件在archive文件夹中,会分别根据判断输出MCNP5与MCNP6格式的面源文件，
+    输出的MCNP6格式的面源文件名称为rssa_mcnp6.1.1，输出的MCNP5格式的面源文件有两个，分别为rssa_mcnp5-1.20和rssa_mcnp5-1.51。
 
 接续面源文件使用
 -----------------------

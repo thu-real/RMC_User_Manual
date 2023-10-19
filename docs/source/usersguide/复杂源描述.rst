@@ -478,7 +478,7 @@ SurfSrcRead选项卡
 
      SurfSrcRead  OldSurf=< S1 S2 S3……Sn >  NewSurf = < S11 S21 S31…Sm1…Smn >
                   Cell=<cell_vector_group>  Partype=<params>   Coli=<coli>  Wtm=<wtm>
-                  Axis=<x1 x2 x3>   Extent=<id>  Posace=<posace>  Tr=<id>
+                  Axis=<x1 x2 x3>   Extent=<id>  Posace=<posace>  Tr=<id> ssr=<flag>
 
 
 其中，
@@ -504,6 +504,11 @@ SurfSrcRead选项卡
    如果是D+正整数，则表示相应的偏倚操作：其定义为D+正整数时，正整数的值表示对应的\ **Distribution**\ 卡中定义的用户索引号，
    其仅支持离散值的分布，而后会根据相应的\ **Distribution**\ 卡内Type=1内的离散值 定义来进行相应的偏移操作。
 -  当接续面源固定源计算中使用的粒子数大于接续面源文件中的粒子历史数，则会重复抽样直到粒子数等于固定源计算中使用的粒子数;反之，则不会重复抽样．
+
+-  **ssr**\ 指定是否读入MCNP格式的面源文件，等于1时表示读入的是MCNP格式的面源文件，目前可以读MCNP6.1.1、MCNP5-1.20和MCNP5-1.51格式的
+   面源文件；默认为0，表示读入的RMC格式的面源文件。同时，该功能需要使用RMC的python框架进行计算，新建一个test文件夹，同时将RMC的python框架
+   中的runner.py复制过来，同时新建一个文件夹workspace,将输入卡、RMC的可执行文件、xsdir以及MCNP输出面源文件wssa(如果不是wssa,重命名
+   wssa)复制到workspace文件夹下,然后调用文件夹外的runner.py即可正常运行,运行命令为python3 runner.py workspace/inp --mpi mpi核数。
 
 
 
