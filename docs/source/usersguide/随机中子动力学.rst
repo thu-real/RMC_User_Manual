@@ -3,7 +3,7 @@
 随机中子动力学（仅限企业版本）
 ====================================
 
-RMC支持中子点火概率、中子脉冲引发时间等随机中子动力学计算模拟功能,也支持直接模拟法中子动力学计算功能。
+RMC支持中子静态系统点火概率、动态系统存活概率和中子脉冲引发时间等随机中子动力学计算模拟功能,也支持直接模拟法中子动力学计算功能。
 
 随机中子动力学模拟时以中子链为单位，按照定义的时间步大小，模拟中子链随时间的演化特点，设定中子链自持的标准，计算统计中子的点火概率或者超临界系统的脉冲引发时间。
 
@@ -23,7 +23,8 @@ RMC支持中子点火概率、中子脉冲引发时间等随机中子动力学�
                [DecayTimeStep=<decay_timestep>] [CaptureMode=<capture_mode_option>]
                [UseComb=<use_comb_method_option>] [ControlNum=<comb_control_number>]
                [FissMultiplicity=<fission_multiplicity>] [SpontaFiss=<spontaneous_fission>]
-               [InitCriSrc=<initial_critical_source>]
+               [InitCriSrc=<initial_critical_source>] [GeoMatTimeStep=<geo_mat_time_step>]
+               [PosStartTime=<start_time>] [PosEndTime=<end_time>] 
      TimeStep  Time=<t0 t1 t2 ... tn>  Step=<s1 s2 ... sn>
      RNG       [Type = <type>] [Seed = <seed>] [Stride = <stride>]
      FissMult  zaid=<nuclide_ID>  method=<number> data=<number> shift=<number>
@@ -42,7 +43,7 @@ Particle卡指定随机中子动力学模拟时中子链的相关参数。
 
 -  **FissionChain**\ 指定模拟的中子链数目，需为正整数。
 -  **TimeStep**\ 中子链模拟时的时间步间隔，单位为s。
--  **StochasticMode**\ 随机中子动力学计算模式选项，0为脉冲引发时间计算或者直接模拟法中子动力学计算模式，1为POI计算模式,默认为0。
+-  **StochasticMode**\ 随机中子动力学计算模式选项，0为脉冲引发时间计算或者直接模拟法中子动力学计算模式，1为POI计算模式，2为用中子库追踪法计算POS，3为用单中子追踪法计算POS，默认为0。
 -  **MaxPopulation**\ 指定中子链模拟时的最大中子数，当中子链中的瞬发中子数超过该数目时，认为该中子链自持，停止该中子链的模拟。
 -  **Batch**\ 定义分组的数目，该卡在使用组统计法计算点火概率的不确定度时使用，默认不分组，即分组数目为1。
 -  **Lambda**\ 定义自发裂变源的裂变强度，单位为/s。
@@ -61,6 +62,9 @@ Particle卡指定随机中子动力学模拟时中子链的相关参数。
 -  **FissMultiplicity**\ 是否开启裂变多重性，0为关闭，1为开启，默认为1。
 -  **SpontaFiss**\ 是否开启自发裂变，0为关闭，1为开启，默认为1。
 -  **InitCriSrc**\ 是否存在初始临界源(需要由准静态S模式计算，生成后缀为".KineticsInitSource"的源文件)，0为不存在，1为存在，默认为0。若存在，则初始源分布由给定文件确定，常用于直接模拟法中子动力学计算模式。
+-  **GeoMatTimeStep**\ 定义几何、材料变化的时间步（POS中应用）。
+-  **PosStartTime**\ 定义POS计算的起始时间。
+-  **PosEndTime**\ 定义POS计算的结束时间。
 
 
 TimeStep 选项卡
@@ -75,7 +79,7 @@ TimeStep卡指定随机中子动力学模拟时动态时间步长的相关参数
 随机中子动力学模块输入示例
 -------------------------------
 
--  中子点火概率计算使用示例
+-  中子静态系统点火概率计算使用示例
 
 .. code-block:: c
 
@@ -83,7 +87,26 @@ TimeStep卡指定随机中子动力学模拟时动态时间步长的相关参数
     Particle  StochasticMode=1 FissionChain=1000 TimeStep=1e-9  MaxPopulation=1000 Batch=10
 
 
-该示例定义了中子点火概率的计算参数，计算模式为POI，模拟1000条中子链，共分成10组进行模拟和统计，模拟时的时间步大小为1纳秒（ns），每条中子链的瞬发中子数上限为1000。
+该示例定义了中子静态系统点火概率的计算参数，计算模式为POI，模拟1000条中子链，共分成10组进行模拟和统计，模拟时的时间步大小为1纳秒（ns），每条中子链的瞬发中子数上限为1000。
+
+-  中子动态系统存活概率（中子库追踪法NeutronBankTrackingMethod）计算使用示例
+
+.. code-block:: c
+
+    KINETICS
+    particle  FissionChain = 100000 TimeStep=10e-8  MaxPopulation=100000000 batch=20 PosStartTime=990e-8 PosEndTime=1000e-8 ControlNum=100000 GeoMatTimeStep=10e-8 StochasticMode=2
+
+
+该示例定义了用中子库追踪法计算动态系统存活概率的计算参数，计算模式为POS，模拟100000条中子链，共分成20组进行模拟和统计，模拟时的时间步大小为10 sh，每条中子链的瞬发中子数上限为100000000，POS计算起始时刻为990sh，结束时刻为1000sh,梳子法阈值为100000（粒子数超过该值时启用梳子法，低于该值时关闭梳子法），几何材料变化时间步为10sh。
+
+-  中子动态系统存活概率（单中子库追踪法SingleNeutronTrackingMethod）计算使用示例
+
+.. code-block:: c
+
+    KINETICS
+    particle  FissionChain = 100000 TimeStep=10e-8  MaxPopulation=100000000 batch=20 PosStartTime=990e-8 PosEndTime=1000e-8 GeoMatTimeStep=10e-8 StochasticMode=3
+
+该示例定义了用单中子追踪法计算动态系统存活概率的计算参数，计算模式为POS，模拟100000条中子链，共分成20组进行模拟和统计，模拟时的时间步大小为10 sh，每条中子链的瞬发中子数上限为100000000，POS计算起始时刻为990sh，结束时刻为1000sh，几何材料变化时间步为10sh。
 
 
 -  中子脉冲引发时间计算使用示例
