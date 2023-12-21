@@ -26,12 +26,13 @@ RMC支持中子点火概率、中子脉冲引发时间等随机中子动力学�
                [InitCriSrc=<initial_critical_source>]
      TimeStep  Time=<t0 t1 t2 ... tn>  Step=<s1 s2 ... sn>
      RNG       [Type = <type>] [Seed = <seed>] [Stride = <stride>]
+     FissMult  zaid=<nuclide_ID>  method=<number> data=<number> shift=<number>
 
 
 其中，
 
 -  **KINETICS**\ 为随机中子动力学关键词。\ **Particle**\ 卡定义中子链相关参数，
-   \ **TimeStep**\ 卡定义变时间步长的相关参数，\ **RNG**\ 卡定义随机数，和临界计算模块中的随机数定义卡的使用方法相同，这里不再赘述。下面分别介绍
+   \ **TimeStep**\ 卡定义变时间步长的相关参数，\ **RNG**\ 卡定义随机数，和临界计算模块中的随机数定义卡的使用方法相同，这里不再赘述。\ **FissMult**\ 卡定义详细的中子裂变多重性参数设置，与固定源计算模式中的FissMult卡使用方法相同，这里不再赘述。下面分别介绍
    \ **Particle**\ 卡和\ **TimeStep**\ 卡的使用方法。
 
 Particle 选项卡
