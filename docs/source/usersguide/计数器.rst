@@ -3,7 +3,7 @@
 计数器
 ============
 
-RMC包含三类计数器，分别是栅元计数器（cell tally）、网格计数器（mesh tally）和截
+RMC包含四类计数器，分别是栅元计数器（cell tally）、网格计数器（mesh tally）、函数展开计数器(FET tally)和截
 面计数器（cross-section tally）。
 
 栅元计数器用来统计栅元内的宏观物理量，包括积分通量、功率、裂变反应率和吸收反应率
@@ -1130,6 +1130,72 @@ U235的裂变截面，U238的吸收截面和裂变截面，O16的辐射俘获截
   CsTally 1 Cell = 1 > 221 > 145 > 35 Mat = 2 MT = -6 , -2 -6 , 102
 
 .. _section_accetally:
+
+FET计数器
+--------------
+
+FET计数器的输入卡为：
+
+.. code-block:: none
+
+  FETTally <id> [Type = <type>] [Particle = <type>]
+                 [Dimension = <dimension>] [Geometry=<geo>]
+                 [Bound = <params>]
+                 [Legendre = <a1 a2 a3>] [Zenike = <Zenike>]
+                 [CutNumber=<cutnumber>] [OutputNumber=<outputnumber>] 
+                 [OutputStd=<OutputStd>] [HDF5OUTPUT=<HDF5OUTPUT>]
+
+
+
+其中，
+
+-  **FETTally**\ 为函数展开计数器输入卡的关键词。
+
+-  **id**\ 为FET计数器的编号，便于查阅输出。
+
+-  **Type**\ 卡指定计数类型，详见 :numref:`tallytypes_table`。
+
+-  **Particle**\ 选项卡指定计数的粒子类型。\ **Particle = 1**\ 表示对中子计数，
+   \ **Particle = 2**\ 表示对光子计数，\ **Particle = 3**\ 表示对电子和正电子计数。
+   默认情况为对中子计数。
+
+-  **Geometry**\ 选项卡指定多项式拟合空间几何形状，0为笛卡尔，1为圆柱，2为球。
+
+-  **Dimension**\ 选项卡指定多项式拟合空间维度，1维2维或3维。
+
+-  **Bound**\ 选项卡指定进行FET统计的边界范围.
+   若为笛卡尔空间，则需要形如“Bound = x_min x_max y_min y_max z_min z_max”。
+   若为圆柱空间，则需要形如“Bound = r_max r_min X Y Z h_max h_min”。
+   若为球空间，则需要形如“Bound = r_max r_min X Y Z”。
+   若为笛卡尔空间一维，则另外两个维度应当max和min是0，表示一个方向上的整个几何。
+   若为圆盘则第一个为半径,之后3个为圆心位置，若为圆柱则第一个为半径,之后3个为圆心位置,第三个为高度。
+   若为球则第一个为半径,之后3个为圆心位置。
+
+-  **Legendre**\ 选项卡指定勒让德多项式阶数，三个数字分别表示三个维度下的阶数。一般计算参数存在1个峰值，使用阶数+2。
+   注意：如果是三维空间则需要三个阶数，使用球空间时这里输入球空间的阶数（勒让德+球谐函数）。
+
+-  **Zenike**\ 选项卡指定泽尼克多项式阶数，可以为任意正整数。对于基本圆盘算例一般4-6阶已经足够，一般计算参数存在1个峰值，使用阶数+2。
+
+-  **CutNumber**\ 选项卡指定将一段径迹切割的个数，默认值为1；建议仅对于小算例进行切割，一般10段即可。需要注意，当存在多个FET计数器时，全部使用第一个FET计数器的切割个数。
+
+-  **OutputNumber**\ 选项卡指定输出的计数点的个数，默认值为100。
+
+-  **OutputStd**\ 选项卡指定是否输出多项式阶数计算的标准差，1为输出，默认不输出。
+
+-  **HDF5OUTPUT**\ 选项卡指定是否输出h5格式的多项式阶数，1为输出，默认不输出。
+
+以下输入卡分别定义了一个笛卡尔空间和一个圆柱空间。编号为1的FETTally为笛卡尔空间，
+一维笛卡尔空间，在Z方向[-5,5]之间进行计数，使用10阶勒让德多项式，径迹切割数为100。
+
+编号为2的FETTally为圆柱空间，
+三维圆柱空间，在Z方向[-5,5]和半径10的圆柱之内进行计数，使用6阶勒让德多项式和6阶则尼克多项式，径迹切割数为100。
+
+.. code-block:: c
+
+    Tally
+    FETTally 1 dimension=1 geometry=0 bound=0 0 0 0 -5 5 legendre=10 0 0 zenike=0 cutnumber=100
+    FETTally 2 type=1 dimension=3 geometry=1 bound=10 0 0 0 0 5 -5 legendre=6 0 0 zenike=6 cutnumber=100
+
 
 计数器统计检验
 ------------------------------
