@@ -15,7 +15,7 @@ RMC也同时支持单独使用微扰功能，目前RMC支持的材料密度微�
 .. code-block:: none
 
     CriticalitySearch
-    Differentialoperator <id> [cell=<cell_vector>] [material=<mat id>] [nuclide=<nuc>] [variable=<param>]
+    Differentialoperator <id> [cell=<cell_vector>] [material=<mat_vector>] [nuclide=<nuc_vector>] [variable=<param>]
         [estimator=<param>] [order=<param>] [sourceperb=<param>] [batchcycle=<param>]  [outputbycycle=<param>]
         [crosssection=<param>] [response=<param>] [matnameid=<param>] [pressure=<param>] [gramdenpoly=<param>]
 
@@ -26,13 +26,16 @@ RMC也同时支持单独使用微扰功能，目前RMC支持的材料密度微�
 
 -  **differentialoperator**\ 为微分算符法输入卡，支持多个同时使用，其后紧跟的id须不同；
 
--  **cell**\ 为截面扰动的栅元向量，层级输入格式和celltally中一致，缺省时仅material定位，否则cell和material采用与关系共同定位；
+-  **cell**\ 为截面扰动的栅元向量，层级输入格式和celltally中一致，缺省时仅material定位，否则cell和material采用与关系共同定位。
+   该输入卡是为了缩小扰动范围，因为一种材料可以填充多个栅元，因此使用cell卡可以从由material确定的栅元中进一步筛选扰动栅元；
 
--  **material**\ 为扰动材料在material卡中的id，不可缺省；
+-  **material**\ 为扰动材料在material卡中的id，不可缺省。当material卡中输入值为一个材料编号列表时，cell卡必须缺省，
+   并且variable卡只能输入2，表示计算所有材料或者多个材料的等温温度系数（多普勒系数），但是用户需要确定此时被扰动的多个
+   材料的温度是一致的，否则计算结果是不具备任何物理意义的；
 
--  **nuclide**\ 为扰动核素的zaid，不可缺省；
+-  **nuclide**\ 为扰动核素的zaid，可缺省，缺省时表示扰动material中所有核素；
 
--  **variable**\ 为扰动类型，1-材料密度微扰（默认值），2-材料温度微扰；
+-  **variable**\ 为扰动类型，1-材料密度微扰（默认值），2-材料温度微扰。
    材料密度微扰考虑材料密度变化对响应物理量（如Keff或功率）的扰动，如果用户没有使用matnameid输入卡，则程序计算结果只会给出响应物理量
    对扰动材料的扰动核素的原子密度和质量密度的敏感性系数，该结果是准确的。如果使用了matnameid输入卡，则程序会根据质量密度系数继续
    计算出材料温度系数，不过该结果仅供参考，因为计算过程中涉及材料热物性，而同一种材料的热物性通常对于不同的用户以及不同的应用领域是
@@ -192,7 +195,8 @@ RMC也同时支持单独使用微扰功能，目前RMC支持的材料密度微�
    若\ **max = 1**\ 且开启了Tally，则程序的计算过程为：临界计算-参数搜索-临界计算-活跃代临界计算。
    特别地，当用户指定\ **max = 0**\ 时，程序将仅做一次临界计算和一次搜索，且不会关闭Tally计数。
 
--  **perb**\ 为搜索使用的微分算符法的id，对应于differentialoperator输入卡；
+-  **perb**\ 为搜索使用的微分算符法的id，对应于differentialoperator输入卡，注意所对应的differentialoperator
+   输入卡中的variable必须是1；
 
 -  **differentialoperator**\ 为微分算符法输入卡，其使用方法在材料密度微扰和温度微扰中已经介绍过，此处不再赘述。
 
