@@ -160,6 +160,58 @@ OTFDB核素输入卡
 
 -  **zaid**\ 为核素ID。
 
+
+.. _section_hdf5_mat:
+
+材料HDF5文件输入
+-----------------
+
+除了在文本文件中读取材料信息及CEACE信息外，RMC程序还支持从HDF5文件中读取材料参数。用户通过设置HDF5文件路径：
+
+
+.. code-block:: none
+
+  HDF5 <path_to_hdf5>
+
+程序会从相应文件中读取材料及CEACE信息。
+
+.. note:: 由于HDF5文件的用户可读性较差，从H5文件中读取材料信息，一般仅出现在大规模核热耦合计算中，读取上一
+   个燃耗步RMC程序自动生成的材料HDF5文件，用于加速程序计算。     
+   
+一个HDF5格式的材料文件中包含以下子数据块：
+
+:material_density:
+  用户定义的所有材料的密度
+
+:material_id:
+  用户定义的所有材料的编号
+
+:material_nuclide_number:
+  用户定义的每个材料中核素的数目
+
+:material_sabnuclide_number:
+  用户定义的每个材料中热化核素的数目
+
+:material_nuclides_id:
+  用户定义的每个材料中所有核素的编号，如92235.30c, 54135.30c等
+
+:material_nuclides_density:
+  用户定义的每个材料中所有核素的密度
+
+:material_sabnuclides_id:
+  用户定义的每个材料中所欲热化核素的编号，如HinH2O.92t等
+
+.. note:: 为了加快程序读取材料信息的速度，所有数据都存储在一个一维数组中。
+
+除了以上基础的数据信息外，为了方便程序读取，HDF5文件中还包括两个位置索引变量：
+
+:material_nuclide_position:
+  用户定义的每个材料的组成核素在 ``material_nuclides_id`` 数组中的位置
+
+:material_sabnuclide_position:
+  用户定义的每个热化材料的组成热化核素在 ``material_sabnuclides_id`` 数组中的位置
+  
+
 .. _section_mat_mgace:
 
 多群ACE截面相关输入卡

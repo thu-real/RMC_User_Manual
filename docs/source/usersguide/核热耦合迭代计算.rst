@@ -19,7 +19,7 @@ RMC支持进行核热耦合计算，耦合功能使用Python脚本进行迭代�
 
     CRITICALITY
     <CRITICALITY的其他选项卡>
-    Couple MaxIteration = 2 VARY_CYCLE = 200 300 400
+    Couple MaxIteration = 2 VARY_CYCLE = 200 300 400 VARY_INACTIVE_CYCLE=150 10 10 HDF5_SOURCE=1
 
 其中，
 
@@ -30,7 +30,19 @@ RMC支持进行核热耦合计算，耦合功能使用Python脚本进行迭代�
 - **VARY_CYCLE**\ 为中子历史增长方法的输入卡，如果没有这个输入卡，则每次耦合迭代的源迭代次数不变；
   如果有这个输入卡，则要求输入卡的数字的数量等于MaxIteration+1。
 
-**注意：该卡为Python识别，直接使用RMC运行时会报错**
+- **HDF5_SOURCE**\ 卡为指定在耦合迭代过程中，从上一个迭代步中输出的收敛源文件 ``inp.Source.h5`` 文件中读取
+  收敛的裂变源，并作为初始源开始输运计算，以加速源收敛过程。用户需要在输入卡内的 :ref:`section_output` 模块中输入 
+  ``fissionsource 1`` 以控制在计算结束后，输出收敛的裂变源作为下一个迭代步的初始源。
+
+  .. note:: 在耦合过程中，程序会自动将上一个迭代步输出的 ``inp.source.h5`` 文件复制到 workspace目录下，并重
+    命名为 ``convergent_source.h5``　，该文件是RMC读取收敛源H5文件的默认文件。
+
+- **VARY_INACTIVE_CYCLE**\ 卡指定在耦合迭代过程中，设置每个迭代步的非活跃代数目。通过搭配 ``HDF5_SOURCE`` 卡，
+  起到耦合迭代过程中源收敛加速的效果。
+
+  .. note:: 该选项必须与 ``HDF5_SOURCE`` 选项卡配合使用，如用户未定义，则程序会发出警告并默认设置  ``HDF5_SOURCE=1``
+
+.. important:: COUPLE卡，即耦合迭代控制选项只能为RMC-Python识别，直接使用RMC运行时会报错
 
 Mesh输入卡中，文件名和数据集在耦合迭代过程中比较固定，具体为：
 
@@ -67,15 +79,43 @@ Mesh输入卡中，文件名和数据集在耦合迭代过程中比较固定，�
 
     PRINT
     Inpfile <flag>
+    
 
-将<flag>置为1即可。
+将<flag>置为1即可。同时，为了保证在开启预估校正的情况下的功率输出结果的正确性，需要在输出控制中关闭校正步的输出，即：
 
-核热耦合迭代计算所需要的其他输入卡
------------------------------------
+.. code-block:: none
+
+    PRINT
+    BurnupCorrector 0
+
+
+RMC-CTF耦合迭代计算
+-------------------
+
+RMC可以开展与CTF的耦合迭代计算，CTF_ 是由美国北卡大学开发的子通道热工水力分析程序。在耦合迭代计算过程中，RMC计算出目标对象的三维功率分布，经耦合
+程序处理作为CTF的输入，CTF计算出温度场和密度场，同样经耦合程序处理作为RMC的输入，如此循环迭代，直到收敛。
+
+RMC/CTF核热耦合迭代计算所需要的耦合接口程序
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+RMC/CTF的耦合系统，除了这两个物理和热工程序外，还包括两个耦合接口程序，分别是 rmc2ctf_ 和 ctf2rmc_ :
+
+``"rmc2ctf"``
+
+  物理到热工接口程序，将RMC输运计算输出的功率分布文件转换为CTF的功率输入文件。
+
+``"ctf2rmc"``
+
+  热工到物理接口程序，将CTF计算得到的燃料棒温度、慢化剂温度和慢化剂密度根据指定的映射关系进行处理，得到RMC输运计算所需的网格文件。
+
+RMC/CTF核热耦合迭代计算所需要的耦合接口文件
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 在与CTF的核热耦合过程中，为自动生成RMC和CTF可以读取的数据格式，需要为第三方脚本提供补充信息输入卡，共计四个，具体如下：
 
-CoreBound.inp 堆芯耦合迭代的边界：
+``"CoreBound.inp"``
+
+  堆芯耦合迭代的边界, 三行分别为x、y、z轴的边界（小值在前），单位为厘米。
 
 .. code-block:: none
 
@@ -83,9 +123,11 @@ CoreBound.inp 堆芯耦合迭代的边界：
     -139.776 139.7760
     0.0 365.76
 
-三行分别为x、y、z轴的边界（小值在前），单位为厘米。
+``"CoreMap.inp"`` 
 
-CoreMap.inp 堆芯组件的排布：
+  堆芯组件的排布。第一行为堆芯的组件分布的矩阵阶数，上面例子中为“13x13”。从第2行开始为组件分布的矩阵，上例中即为13x13的矩阵，
+  其中0的位置为没有组件的位置，其他位置需要从1开始进行组件编号。在这个矩阵之后，最后一行为单组件的棒重复几何的矩阵阶数，下例中
+  为17x17的标准组件。
 
 .. code-block:: none
 
@@ -105,19 +147,17 @@ CoreMap.inp 堆芯组件的排布：
     0   0   0    0    0    119  120  121  0    0    0    0    0
     17 17
 
-第一行为堆芯的组件分布的矩阵阶数，上面例子中为“13x13”。从第2行开始为组件分布的矩阵，上例中即为13x13的矩阵，
-其中0的位置为没有组件的位置，其他位置需要从1开始进行组件编号。在这个矩阵之后，最后一行为单组件的棒重复几何的矩阵阶数，
-上例中为17x17的标准组件。
+``"TotalPower.inp"`` 
 
-TotalPower.inp 总功率：
+  算例总功率，单位为MW。
 
 .. code-block:: none
 
     3411.0
 
-该文件中只有一个数字，即为算例总热功率，单位为MW。
+``"GuideTube.inp"`` 
 
-GuideTube.inp 各组件中的导管位置：
+  各组件中的导管位置, 该文件的行数即为每个组件中的导管数量，每行的两个数字分别为各个导管的位置坐标。在标准17x17组件中，25个导管的位置就是下例中的数值。
 
 .. code-block:: none
 
@@ -147,15 +187,14 @@ GuideTube.inp 各组件中的导管位置：
     15 9
     15 12
 
-该文件的行数即为每个组件中的导管数量，每行的两个数字分别为各个导管的位置坐标。在标准17x17组件中，
-25个导管的位置就是上例中的数值。
 
-核热耦合迭代计算运行方式
--------------------------------
+RMC/CTF核热耦合迭代计算的计算准备
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-核热耦合计算建议在一个空文件夹中进行，将python代码文件夹RMC复制到这个文件夹中，
-并将其中的“runner.py”拷贝出来，另外需要创建workspace文件夹，将RMC、CTF（包括预处理器和可执行程序）以及rmc2ctf、ctf2rmc
-复制进workspace文件夹，将输入卡inp以及各种其他输入卡放入workspace文件夹，并设置好数据库路径环境变量“RMC_DATA_PATH”。
+开展RMC/CTF耦合迭代计算，除了需要RMC的输入卡以及上述四个接口文件外，还需要CTF的输入卡，CTF预处理器的输入卡以及各个程序的可执行程序，一般来说，建议
+在一个空文件夹中进行，将python代码文件夹RMC复制到这个文件夹中，并将其中的“runner.py”拷贝出来，另外需要创建workspace文件夹，将RMC、CTF（包括预
+处理器和可执行程序）以及rmc2ctf、ctf2rmc复制进workspace文件夹，将输入卡inp以及各种其他输入卡放入workspace文件夹，并设置好数据库路径环境变量
+“RMC_DATA_PATH”。
 
 最终的文件夹结构如下：
 
@@ -181,7 +220,194 @@ GuideTube.inp 各组件中的导管位置：
            |-- ctf2rmc         # 生成RMC的数据h5文件CTF.h5
 
 
-计算运行命令为“python3 runner.py”，后面加上“--help”可以得到帮助信息
+RMC-SUBCHAN耦合迭代计算
+-----------------------
+
+除了与CTF程序进行耦合，RMC还可以与子通道程序 SUBCHAN_ 进行耦合。子通道程序SUBCHAN是由清华大学工程物理系俞冀阳老师开发的全堆芯三维子通道热工水力程序，
+可用于压水堆、沸水堆、超临界水堆等的稳态和瞬态热工水力计算。和RMC/CTF耦合系统类似，RMC/SUBCHAN耦合系统也是采用松耦合迭代策略。耦合计算过程中，
+RMC计算出功率分布，SUBCHAN计算温度场和密度场，然后由耦合程序进行数据交换，如此循环迭代，直到收敛。
+
+RMC/SUBCHAN核热耦合迭代计算所需要的其他输入卡
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+与RMC/CTF耦合系统不同，RMC/SUBCHAN采用了全新的耦合接口模块，其不再作为独立的程序存在，而是内嵌于RMC的Python模块中作为接口函数。用户不再需要单独编译接口程序，只需要
+在工作目录下同时编译好RMC和SUBCHAN的可执行程序即可。同时，RMC/SUBCHAN耦合迭代计算所需要的其他输入卡也与RMC/CTF耦合系统不同。相比RMC/CTF耦合系统使用的
+四个接口文件，新的耦合系统只需要一个接口文件：
+
+- **coupling.yaml**： 耦合接口文件，用于指定RMC和SUBCHAN之间的耦合迭代的参数，包括耦合迭代策略，目标对象总功率，目标对象几何参数等。参数的详细介绍如下：
+
+``"scheme"``
+  
+  耦合迭代策略，可选值为 ``"pin"`` 和 ``"global_pin"`` 两种，默认值为 ``"pin"`` 。``"pin"`` 表示根据真实的堆芯几何进行子通道建模，``"global_pin"``
+  表示将堆芯几何简化为一个大的立方体，燃耗进行子通道的建模。相比 ``"pin"`` 方案，``"global_pin"`` 方案的建模难度更低，因为其将真实堆芯几何简化为一个立方体，
+  其燃料棒束和子通道的映射关系非常简单。但 ``"global_pin"`` 方案的建模精度相比 ``"pin"`` 方案要低，由于其会高估堆芯边缘处的流道面积，同时在非堆芯区域的子通道
+  建模也会引入物理上并不存在的搅混效应，因此会引入额外的误差。该方案的提出，是由于 SUBCHAN 的精细建模难度较大，但随着预处理器SUBCHAN-PREPROC的开发，子通道的建模
+  问题已经不再是耦合问题的阻碍，因此 ``"global_pin"`` 方案的使用场景已经不多，一般不建议使用该方案。
+
+``"core_power"``
+
+  目标堆芯总功率，单位为MW。
+
+``"core_bound"``
+
+  目标堆芯的几何边界，由x, y, z三个方向的边界组成，单位为cm。
+
+  .. code-block:: yaml
+
+        core_bound:
+          x: [ -161.25, 161.25 ]
+          y: [ -161.25, 161.25 ]
+          z: [ 11.951, 377.711 ]
+  
+
+``"mesh_scope"``
+
+  目标堆芯的网格范围，由x, y, z三个方向的网格范围组成。
+
+  .. code-block:: yaml
+
+        mesh_scope:
+          x: 51
+          y: 51
+          z: 49
+
+  .. note:: 在耦合迭代的过程中，程序会从RMC计数文件 ``"MeshTally*.h5"`` 中读取网格范围，因此用户不需要手动指定 ``"mesh_scope"`` ，程序会自动读取。
+
+  .. caution:: 网格范围的设置需要与RMC输入文件中的网格范围保持一致，否则会导致网格文件读取错误。
+
+``"core_map"``
+
+  目标堆芯的组件排布，由一个二维矩阵组成，矩阵的行数和列数分别为x, y方向的组件数目，矩阵中的每个元素为组件的编号，编号从1开始，0表示该位置没有组件。
+
+  .. code-block:: yaml
+
+        core_map:
+          - [1, 2, 3]
+          - [4, 5, 6]
+          - [7, 8, 9]
+
+  .. caution:: 用户必须指定 ``"core_map"`` ，否则耦合迭代计算无法进行。
+
+``"assembly_map"``
+
+  目标堆芯内组件的燃料棒和导向管的排布，由一个二维矩阵组成，矩阵的行数和列数分别为x, y方向的燃料棒（导向管）数目，矩阵中的每个元素为燃料棒（导向管）
+  的编号，1表示该位置为燃料棒，0表示该位置为导向管。
+
+  .. code-block:: yaml
+    
+        assembly_map:
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+
+  .. note:: 如果用户不指定 ``"assembly_map"`` ，则默认组件类型采用标准西屋17x17压水堆组件。
+
+  .. note:: 耦合接口文件的示例文件参考 :download:`coupling.yaml <../../../RMC/controller/examples/coupling.yaml>`
+
+  .. caution:: 当前RMC/SUBCHAN的耦合系统尚不支持组件内存在多种燃料棒类型的情况，这并不是耦合系统的原因，而是目前的SUBCHAN-PREPROC预处理器尚
+    不支持生成组件内含有多种燃料棒的子通道输入文件，如果用户可以自主制作组件内包含多种燃料棒的子通道输入文件，则耦合系统不会存在问题。
+
+SUBCHAN预处理器SUBCHAN-PREPROC输入文件
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+对于RMC/SUBCHAN的耦合系统，用户需要在工作目录准备好RMC的输入文件 ``"inp"`` 、SUBCHAN的输入文件 ``"SUBCHAN.IN"`` 以及上述提及的耦合
+接口文件 ``"coupling.yaml"`` 。然而，子通道程序的建模难度要远大于物理程序，其燃料棒与通道、通道与通道之间的连接关系极其复杂。一般来说，一个堆芯规模的
+子通道输入文件可以达到十几万行，因此手动编写子通道输入文件是不现实的。为了解决这个问题，我们开发了子通道预处理器SUBCHAN-PREPROC。该预处理器可以作为独立
+编译的程序，也可以作为RMC/SUBCHAN耦合系统的接口函数，其主要功能是读取预处理文件 ``"preproc.yaml"`` 文件，解析其中信息并自动生成子通道输入文件 ``"SUBCHAN.IN"`` 。
+有关SUBCHAN的输入文件详细内容，可以参考 SUBCHAN_ 的用户手册。
+
+对于SUBCHAN-PREPROC而言，其核心任务是根据一些基本的描述参数，自动生成子通道输入文件。这些基本的描述参数包括：
+
+``"core_map"``
+  
+  和耦合接口文件中的 ``"core_map"`` 一致，用于描述堆芯的组件排布。
+
+``"assembly_pitch"``
+
+  组件中心距，单位为m。
+
+``"axial_mesh_gries"``
+
+  轴向网格划分，由每个网格的轴向坐标组成，单位为m。
+
+``"asssembly_map"``
+
+  组件内燃料棒和导向管排布，与耦合接口文件中的 ``"assembly_map"`` 一致。
+
+``"pin_pitch"``
+
+  燃料棒中心距，单位为m。
+
+``"fuel_rod"``
+
+  用于指定燃料棒参数，包括 ``"outer_diameter"``, ``"inner_diameter"``, ``"fuel_density"``, ``"clad_thickness"`` 等参数。
+
+``"guide_tube"``
+
+  用于指定导向管参数，包括 ``"outer_diameter"``, ``"inner_diameter"`` 等参数。
+
+``"spacer_grids"``
+
+  用于指定定位格架参数，包括定位格架数目 ``"number"`` 、位置 ``"position"`` 和搅混因子等参数。
+
+``"inlet_enthalpy"``
+
+  入口焓，支持温度或焓两种输入。
+
+``"inlet_mass_flux"``
+
+  入口质量流量，单位为kg/s。
+
+除了以上必要的输入参数以外，SUBCHAN-PREPROC还包括大量的控制参数，这些参数的具体含义可以参考 SUBCHAN_ 的用户手册。
+
+.. important:: 在实际的反应堆堆芯稳态热工水力计算来说，用户实际上只需要堆芯的几何参数和必要的控制参数，如入口质量流量、入口焓值等，对于一些模型的输入，可以直接采用默认值。
+
+.. note:: SUBCHAN-PREPROC的输入文件的示例文件见 :download:`preproc.yaml <../../../RMC/controller/examples/preproc.yaml>`
+
+RMC/SUBCHAN核热耦合迭代计算的计算准备
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+和RMC/CTF耦合迭代计算类似，RMC/SUBCHAN耦合迭代计算同样需要类似的计算准备。建议在一个空文件夹中进行，将python代码文件夹RMC复制到这个文件夹中，
+并将其中的“runner.py”拷贝出来，另外需要创建workspace文件夹，将RMC、SUBCHAN可执行程序复制进workspace文件夹。不同的是，RMC/SUBCHAN耦合系统
+不再需要编译单独的耦合接口程序，其耦合接口文件以接口函数的形式内嵌于RMC的Python模块中。因此，用户只需要再准备好RMC的输入卡、SUBCHAN的输入卡以及耦合
+系统输入卡即可
+
+.. note:: 如果用户需要使用SUBCHAN-PREPROC预处理器，则需要准备好预处理器的输入文件 ``"preproc.yaml"``，并需要准备SUBCHAN的输入卡。预处理器会自动生成 ``"SUBCHAN.IN"`` 文件。
+
+最终的文件夹结构如下：
+
+.. code-block:: bash
+
+    # 环境变量“RMC_DATA_PATH”指向数据库索引文件xsdir等的路径。
+    simulations
+    |-- RMC                    # RMC的Python代码包文件夹
+    |-- runner.py              # 从RMC文件夹中复制出来的文件
+    |-- workspace              # 计算文件夹
+           |-- inp             # RMC输入卡
+           |-- coupling.yaml   # 耦合接口文件
+           |-- preproc.yaml    # SUBCHAN-PREPROC预处理器输入文件
+           |-- RMC             # RMC可执行程序
+           |-- subchan         # SUBCHAN可执行程序
+           
+
+核热耦合迭代计算运行方式
+-------------------------------
+
+使用基于RMC的核热耦合计算系统，都需要使用计算运行命令“python3 runner.py”开展计算，通过后面加上“--help”可以得到帮助信息
 
 .. code-block:: bash
 
@@ -196,14 +422,17 @@ GuideTube.inp 各组件中的导管位置：
 
     optional arguments:
       -h, --help            show this help message and exit
-      --platform PLATFORM   platform on which to run the job
-      --mpi MPI_NUM         the number of MPI processes to use
+      --platform PLATFORM   platform on which to run the job (default: Linux)
+      --mpi MPI_NUM         the number of MPI processes to use ()
       --omp OMP_NUM         the number of OpenMP threads to use in each process
       --assem ASSEM_NUM     the number of assemblies in the model, default not to
                             calculate CTF
+      --subchannel SUBCHANNLE_TYPE the type of the subchannel code, default "ctf"
       --continue-inp CONTINUE_INP
                             the name of the input file for continuous calculation
       --continue            whether this calculation is a continuous one or not
+      --ccd                 whether to diagnose the convergence of the coupling 
+                            calculation (optional)
 
 
 具体示例如下：
@@ -214,14 +443,43 @@ GuideTube.inp 各组件中的导管位置：
 
 其中，
 
--  **platform**\ 为计算平台，需要根据不同平台上的并行计算任务提交命令进行设置，
-   可选值包括"Linux"（默认值，mpirun命令）、"tianhe"（yhrun命令）。具体使用的命令可以参考Python内相关代码；
+-  **platform**\ 为计算平台，需要根据不同平台上的并行计算任务提交命令进行设置，可选值见下表。
+
+.. note:: 如有RMC-Python部分的源代码，且用户需要在其他平台上运行，可以自行添加平台支持，具体方法见 :ref:`添加新的计算平台 <section_add_platform>`。
+
+.. table:: RMC-Python支持的计算平台
+  :name: table-platform
+
+  +----------------------+--------------------------------+
+  | 计算平台             | 关键词                         | 
+  +======================+================================+
+  | **Linux**            | linux                          | 
+  +----------------------+--------------------------------+
+  | **天河二号**         | tianhe2                        | 
+  +----------------------+--------------------------------+
+  | **天河三号**         | tianhe3                        |
+  +----------------------+--------------------------------+
+  | **银河系统**         | yinhe                          |
+  +----------------------+--------------------------------+
+  | **天河三号高性能4**  | tianhe3_hpc4                   | 
+  +----------------------+--------------------------------+
+  | **天河三号高性能5**  | tianhe3_hpc5                   | 
+  +----------------------+--------------------------------+
+  | **北京超算**         | bscc                           |
+  +----------------------+--------------------------------+
+  | **曙光超算**         | shuguang                       | 
+  +----------------------+--------------------------------+
+  | **山河超算**         | shanhe                         | 
+  +----------------------+--------------------------------+
+
 
 -  **mpi**\ 为RMC计算使用的MPI进程数量；
 
 -  **omp**\ 为RMC计算使用的OpenMP线程数量；
 
 -  **assem**\ 为模型组件数目，亦即CTF计算使用的MPI进程数量；
+
+-  **subchannel**\ 为子通道程序的类型，可选值为 ``"ctf"`` 和 ``"subchan"`` ，默认值为 ``"ctf"`` ；
 
 耦合迭代过程支持接续计算，命令为：
 
@@ -235,3 +493,37 @@ GuideTube.inp 各组件中的导管位置：
 - **continue**\ 表示启动接续计算
 - **continue-inp**\ 指向接续上一步的输入卡，实际上主要是提供上一步的cycle和burnup编号。
   示例中下一步计算为cycle 1的burnup 25的第一次耦合迭代。目前暂不支持couple层级的接续计算，因此couple后面的数值应当与MaxIteration相等。
+
+- **ccd**\ 为是否开启耦合计算的收敛性诊断，如果开启，程序会在每个迭代步计算完成后开启收敛性诊断，从而计算出功率分布、温度和密度参数的二范数和无穷范数，
+  并将结果输出到文件 ``coupling_convergence.h5`` 中。
+
+
+.. _section_add_platform:
+
+添加新的计算平台
+-------------------
+在有RMC-Python源代码的情况下，用户可以自行添加新的计算平台支持。添加新的计算平台需要在 ``RMC/controller/hpc.py`` 文件中添加新的平台支持，即在
+``platforms`` 字典中添加新的平台信息，举例如下：
+
+.. code-block:: python
+  
+    platforms = { "shanhe": Linux(name="shanhe", proc_per_node=56) }
+
+其中，Linux是一个类，其构造函数接受两个参数，分别为平台的名称和每个节点的MPI进程数。在添加新的平台支持后，用户可以在运行命令中使用新的平台关键词。
+
+到目前为止，RMC-Python支持的计算平台有：
+
+:Linux:
+  适用于个人电脑、服务器等Linux系统，并行计算任务提交命令为 ``mpirun -np <mpi> <executable>``。此外，山河超算同样使用Linux平台。
+
+:TianHeSeries:
+  适用于天河二号、天河三号、天河三号高性能4、天河三号高性能5以及银河超算等超级计算机，计算任务提交命令为 ``yhrun -n <mpi> <executable>``
+
+:BSCC:
+  适用于北京超算，计算任务提交命令为 ``srun -n <mpi> <executable>``
+
+
+.. _CTF: https://www.ne.ncsu.edu/rdfmg/cobra-tf/
+.. _SUBCHAN: https://gitlab.reallab.org.cn/thu-real/subchan
+.. _rmc2ctf: https://gitlab.reallab.org.cn/guoxiaoyu543/coupleinterface
+.. _ctf2rmc: https://gitlab.reallab.org.cn/guoxiaoyu543/coupleinterface
