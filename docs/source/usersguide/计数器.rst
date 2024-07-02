@@ -27,7 +27,8 @@ RMC包含四类计数器，分别是栅元计数器（cell tally）、网格计�
               [Time = <time_bin>] [Volume=<vol>] [Multiplier=<mul>] [Attenuator=<att>] 
               [Dose=<dose>] [Gaussian=<gaussian>] [Value=<val_bin>] [Segment=<seg_bin>]
               [Flag=<flag_bin>] [Nest=<nest>] [ReactionRate=<params>]
-              [Source=<source_bin>][Absolute=<val>]
+              [Source=<source_bin>][Absolute=<val>] [Component = <params>] 
+              [Attribute=<attr>] [mt=<mt>]
 
 
 其中，
@@ -82,6 +83,13 @@ RMC包含四类计数器，分别是栅元计数器（cell tally）、网格计�
 
 -  **Absolute**\ 用于输入绝对值，返回一个倍增因子MultiplicationFactor以对蒙卡统计的结
    果进行加权平均，当用户输入多个cell时，绝对值就是输入所有cell的总值。
+
+-  **Component**\ 仅在Type=18时生效，即在统计裂变能量释放时，统计不同的裂变碎片的能量释放。其中，不同的裂变碎片
+   用不同的Component编号区分，对应关系可参考表 :numref:`tally_component` 。
+
+-  **MT**\ 仅在Type=19时生效，即统计某个特定反应的反应率，MT为反应截面的编号。
+
+-  **Attribute**\ 仅在Type=12，particle=2时生效，即光子的能量沉积时，显式区分瞬发光子、缓发光子和俘获光子的能量沉积。详细的描述参考 :ref:`section_energy_release` 节。 
 
 Cell选项卡
 ~~~~~~~~~~~~~~~~
@@ -728,6 +736,8 @@ Reactionrate选项卡
                  [Scope = <params>] [Bound = <params>]
                  [ScopeX/ScopeY/ScopeZ = <params>]
                  [BoundX/BoundY/BoundZ = <params>]
+                 [mt = <mt>] [Component = <component>]
+                 [Attribute = <attribute>]
 
 
 
@@ -752,6 +762,13 @@ Reactionrate选项卡
 -  **Normalize**\ 选项卡指定是否用网格体积进行归一化。
    **Normalize = 1**\ 表示使用网格体积进行归一化，
    **Normalize = 0**\ （缺省值）表示不使用。
+
+-  **Component**\ 仅在Type=18时生效，即在统计裂变能量释放时，统计不同的裂变碎片的能量释放。其中，不同的裂变碎片
+   用不同的Component编号区分，对应关系可参考表 :numref:`tally_component` 。
+
+-  **MT**\ 仅在Type=19时生效，即统计某个特定反应的反应率，MT为反应截面的编号。
+
+-  **Attribute**\ 仅在Type=12，particle=2时生效，即光子的能量沉积时，显式区分瞬发光子、缓发光子和俘获光子的能量沉积。详细的描述参考 :ref:`section_energy_release` 节。
 
 - **HDF5Mesh**\ 选项卡制定是否将该网格计数器的结果输出为网格类型的HDF5文件。
    **HDF5Mesh = 1**\ 表示输出， **HDF5Mesh = 0**\ （缺省值）表示不输出。
@@ -815,6 +832,7 @@ Reactionrate选项卡
 
    MaterialTally <id> [Particle=<particle>] [Type = <type>] 
    [Mat=<mat_1 mat_2 ... mat_n>] [HDF5Material=<flag>] [Energy=<e_1 e_2 ... e_n>]
+   [mt=<mt>] [Component=<component>] [Attribute=<attribute>]
 
 其中，
 
@@ -831,6 +849,13 @@ Reactionrate选项卡
 -  **Mat**\ 选项卡指定需要计数的材料的编号
 
 -  **Energy**\ 选项卡指定能群结构
+
+-  **Component**\ 仅在Type=18时生效，即在统计裂变能量释放时，统计不同的裂变碎片的能量释放。其中，不同的裂变碎片
+   用不同的Component编号区分，对应关系可参考表 :numref:`tally_component` 。
+
+-  **MT**\ 仅在Type=19时生效，即统计某个特定反应的反应率，MT为反应截面的编号。
+
+-  **Attribute**\ 仅在Type=12，particle=2时生效，即光子的能量沉积时，显式区分瞬发光子、缓发光子和俘获光子的能量沉积。详细的描述参考 :ref:`section_energy_release` 节。
 
 -  **HDF5Material**\ 选项卡控制是否输出到inp.Result.h5文件中，
    **HDF5Material = 1**\ 表示输出， **HDF5Material = 0**\ （缺省值）表示不输出。

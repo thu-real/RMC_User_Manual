@@ -40,6 +40,7 @@ RMC目前支持中子-光子-电子耦合输运计算
     Physics
     ParticleMode < particle type >
     Photon PPRODUCEE=<params> TTB=<params> ANNIHILATION=<params> COHERENT=<params> PHOTONNUCLEUS=<params> DOPPLER=<params> UPERERG=<params> ERGCUTGMA=<params> ELECMULTITIMES=<params>
+        DelayedPhotonScaling=<params> Newphoton=<params>
 
 
 
@@ -68,6 +69,15 @@ RMC目前支持中子-光子-电子耦合输运计算
 -  **ERGCUTGMA**\ 指定光子输运过程中的能量下限，单位是MeV，默认值是1.0E-03Mev;
 
 -  **ELECMULTITIMES**\ 指定光子输运过程中产生电子的倍增因子，默认为1.0。
+
+-  **delayedphotonscaling**\ 指定中子产光子过程中通过调整光子的权重来模拟缓发光子的方法，1表示采用（默认），0表示不采用；
+
+-  **newphoton**\ 指定使用考虑原子弛豫过程的新的光子输运过程，1表示采用，0表示不采用（默认）；在使用该选项时，用户需要保证在
+    RMC_DATA的目录下有 ``photon_hdf5`` 的光原和原子弛豫HDF5核数据库，以保证程序正常计算。
+
+    .. note:: 当前版本的RMC兼容 ``mcplib04p`` 的MCNP的光子ACE核数据库。同时，RMC也支持考虑原子弛豫过程的光子HDF5格式数据库。
+        前者对于光子相互作用中康普顿散射和光电效应过程中产生的空穴采用荧光近似进行模拟，具有一定的局限性。后者则是根据数据库中的光电亚壳层 
+        数据对原子弛豫过程进行模拟，具有更高的精度。推荐用户使用后者。
 
 
 
@@ -107,6 +117,8 @@ RMC目前支持中子-光子-电子耦合输运计算
 -  **ParticleMode**\ 表示粒子输运计算物理开关对应的粒子类型，N代表中子、P代表光子、E代表电子；
 
 -  **Electron**\ 为电子物理过程子选项卡的关键字。
+
+-  **EproduceP**\ 为电子产生光子的选项卡（默认为true）。
 
 -  **MaxEnergy**\ 电子输运最高能量，单位为MeV。默认值100。目前RMC数据库要求MaxEnergy不能大于100.如果输运过程中电子能量大于MaxEnergy，则会报错。
 
