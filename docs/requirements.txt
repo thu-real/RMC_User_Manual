@@ -1,0 +1,15 @@
+sphinx
+sphinx_rtd_theme
+# sphinx==5.0.2
+# sphinx_rtd_theme==1.0.0
+# sphinx-numfig
+# jupyter
+# sphinxcontrib-katex
+# sphinxcontrib-svg2pdfconverter
+# numpy
+# scipy
+# h5py
+# pandas
+# uncertainties
+# matplotlib
+# lxml
