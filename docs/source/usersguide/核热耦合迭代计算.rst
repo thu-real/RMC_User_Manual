@@ -316,7 +316,7 @@ RMC/SUBCHAN核热耦合迭代计算所需要的其他输入卡
 
   .. note:: 如果用户不指定 ``"assembly_map"`` ，则默认组件类型采用标准西屋17x17压水堆组件。
 
-  .. note:: 耦合接口文件的示例文件参考 :download:`coupling.yaml <../../resources/RMC/controller/examples/coupling.yaml>`
+  .. note:: 耦合接口文件的示例文件参考 :download:`coupling.yaml <../../../RMC/controller/examples/coupling.yaml>`
 
   .. caution:: 当前RMC/SUBCHAN的耦合系统尚不支持组件内存在多种燃料棒类型的情况，这并不是耦合系统的原因，而是目前的SUBCHAN-PREPROC预处理器尚
     不支持生成组件内含有多种燃料棒的子通道输入文件，如果用户可以自主制作组件内包含多种燃料棒的子通道输入文件，则耦合系统不会存在问题。
@@ -376,7 +376,7 @@ SUBCHAN预处理器SUBCHAN-PREPROC输入文件
 
 .. important:: 在实际的反应堆堆芯稳态热工水力计算来说，用户实际上只需要堆芯的几何参数和必要的控制参数，如入口质量流量、入口焓值等，对于一些模型的输入，可以直接采用默认值。
 
-.. note:: SUBCHAN-PREPROC的输入文件的示例文件见 :download:`preproc.yaml <../../resources/RMC/controller/examples/preproc.yaml>`
+.. note:: SUBCHAN-PREPROC的输入文件的示例文件见 :download:`preproc.yaml <../../../RMC/controller/examples/preproc.yaml>`
 
 RMC/SUBCHAN核热耦合迭代计算的计算准备
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
