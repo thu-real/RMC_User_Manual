@@ -34,7 +34,7 @@ RMC支持用户对源粒子的信息如粒子种类、初始位置、初始能�
                   Wtm=<wtm> Axis=<x1 x2 x3>   Extent=<id>  Posace=<posace> Tr=<id>
      Distribution  <id>  [Depend = <id>]  Type = <flag>  Value= <params>
                    Probability = <params>  [Bias = <params>]
-     Transformation  <id>  [Move=<x1 x2 x3>]  [Rotate=<a11 a12 a12 a21……a33>]
+     Transform  <id>  [Move=<x1 x2 x3>]  [Rotate=<a11 a12 a12 a21……a33>]
      H5SourceInfo filename=<file> groupname=<group>
 
 
@@ -44,8 +44,8 @@ RMC支持用户对源粒子的信息如粒子种类、初始位置、初始能�
 -  **EXTERNALSOURCE**\ 为源描述关键词。\ **Source**\ 卡定义通用源描述,
    \ **SurfSrcRead**\ 卡定义接续面源，\ **Source**\ 卡和\ **SurfSrcRead**\ 卡不能
    同时定义；\ **Distribution**\ 卡用于定义\ **Source**\ 卡和\ **SurfSrcRead**\
-   卡中使用到的分布，\ **Transformation**\ 卡用于定义\ **Source**\ 卡和\ **SurfSrcRead**\
-   卡中使用到的坐标变换，\ **Distribution**\ 卡和\ **Transformation**\卡与S\ **Source**\
+   卡中使用到的分布，\ **Transform**\ 卡用于定义\ **Source**\ 卡和\ **SurfSrcRead**\
+   卡中使用到的坐标变换，\ **Distribution**\ 卡和\ **Transform**\卡与S\ **Source**\
    卡或\ **SurfSrcRead**\配套使用，如\ **Source**\ 卡或\ **SurfSrcRead**\ 卡中
    没有用到分布和坐标变换，也可不定义；除\ **SurfSrcRead**\ 卡只能定义一个外，
    其他三种卡可以定义一个或多个，且没有先后顺序。下面分别介绍四个卡的使用方法。
@@ -521,7 +521,7 @@ Transform选项卡
      Transform  ID  Rotate=<a11 a12 a12 a21……a33>  Move=<x1 x2 x3>
 
 
-Transforma卡定义源定义的坐标变换。ID为坐标变换的编号和Source卡或SurfSrcRead卡定义
+Transform卡定义源定义的坐标变换。ID为坐标变换的编号和Source卡或SurfSrcRead卡定义
 的Transform变量的序号一一对应。Rotate 定义坐标变换的旋转矩阵，Move定义坐标变换的平移向量。
 
 旋转变换可以绕任意轴，其表达式为：
