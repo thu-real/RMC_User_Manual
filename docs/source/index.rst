@@ -20,7 +20,7 @@ RMC的研发始于2001年，能够处理复杂几何结构、采用连续能量�
 
 当前RMC版本为：RMC 3.5.0
 
-分支号（git-sha）：46becc432971d295ad57927175f4b4ce6c400bea
+分支号（git-sha）：7a442f5e96a59f8e2813ede171b3b1420bba44db
 
 |
 
