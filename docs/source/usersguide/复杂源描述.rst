@@ -504,12 +504,18 @@ SurfSrcRead选项卡
 -  **Tr**\ 指定面面对应关系。当输入为正时，表示相应的对应关系，即空间变换关系。
    如果是D+正整数，则表示相应的偏倚操作：其定义为D+正整数时，正整数的值表示对应的\ **Distribution**\ 卡中定义的用户索引号，
    其仅支持离散值的分布，而后会根据相应的\ **Distribution**\ 卡内Type=1内的离散值 定义来进行相应的偏移操作。
--  当接续面源固定源计算中使用的粒子数大于接续面源文件中的粒子历史数，则会重复抽样直到粒子数等于固定源计算中使用的粒子数;反之，则不会重复抽样．
+-  当接续面源固定源计算中使用的粒子数大于接续面源文件中的粒子历史数，则会重复抽样直到粒子数等于固定源计算中使用的粒子数;反之，则不会重复抽样。
 
 -  **ssr**\ 指定是否读入MCNP格式的面源文件，等于1时表示读入的是MCNP格式的面源文件，目前可以读MCNP6.1.1、MCNP5-1.20和MCNP5-1.51格式的
-   面源文件；默认为0，表示读入的RMC格式的面源文件。同时，该功能需要使用RMC的python框架进行计算，新建一个test文件夹，同时将RMC的python框架
-   中的runner.py复制过来，同时新建一个文件夹workspace,将输入卡、RMC的可执行文件、xsdir以及MCNP输出面源文件wssa(如果不是wssa,重命名
-   wssa)复制到workspace文件夹下,然后调用文件夹外的runner.py即可正常运行,运行命令为python3 runner.py workspace/inp --mpi mpi核数。
+   面源文件；默认为0，表示读入的RMC格式的面源文件。同时，该功能需要使用RMC的python框架进行计算，新建一个test文件夹(用户可自己命名该文件夹)，
+   同时将RMC的python框架中的runner.py复制到新建的test文件夹下，同时新建一个文件夹workspace(同理，用户可自己命名该文件夹，
+   默认为workspace),将输入卡、RMC的可执行文件、xsdir以及MCNP输出面源文件wssa(如果不是wssa,重命名wssa)复制到workspace文件夹下,然后调用
+   文件夹外的runner.py即可正常运行,在Linux服务器上运行命令为python3 runner.py，如果要在超算上计算，计算命令参考:ref:`section_run_exe`
+   中的python调用RMC运行部分即可。
+
+-  如果用户在开启了ssr选项时，不希望将RMC的python框架复制到该计算文件夹时，可使用pyinstaller将runner.py打包为一个可执行文件，然后也可使用
+   该可执行文件进行计算，计算命令不变，在Linux服务器上命令为./runner workspace/inp --mpi mpi核数(将python3 runner.py替换为
+   ./runner)，如果要在超算上计算，计算命令将python3 runner.py替换为./runner即可。
 
 
 
@@ -828,6 +834,14 @@ Height在（-5,5）上均匀抽样，上述即为按1/4圆柱体积进行均匀�
 
 该示例使用原来面序号为12的面上的中子径迹，和栅元3中的中子径迹。权重乘子为1，且为碰撞后径迹。
 
+
+.. code-block:: c
+
+    SurfSrcRead  OldSurf=3 4 NewSurf = 3 4
+    Partype=0 1 Coli=1 Wtm=1.0 ssr=1
+
+
+该示例使用原来面序号为3和4的面上的中子和光子径迹，权重乘子为1，使用mcnp格式的面源文件进行接续计算。
 
 -  坐标变换使用示例
 
