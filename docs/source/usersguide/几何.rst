@@ -57,7 +57,8 @@ RMC的CSG几何描述系统包括三类基本的几何描述单元，即，曲�
 -  **Rotate**\ 面的旋转矩阵
 
 -  **RotateAngle**\ 面的旋转角。对面进行旋转和平移操作时，顺序为先旋转后平移。
-   注意，程序不支持对包含圆环面(TX/TY/TZ)的旋转，RMC的面的旋转平移功能需使用RMC的python模块进行计算。
+   注意，程序不支持对包含圆环面(TX/TY/TZ)的旋转，RMC的面的旋转平移功能需使用RMC的python模块进行计算，RMC的python使用方法参见:ref:`section_run_exe`
+   中的python调用RMC运行部分即可。
 
 -  **pair**\ 是在周期边界条件下两个周期面的另一个，pair surf 是与该 surf 配对的另
    一个周期面。

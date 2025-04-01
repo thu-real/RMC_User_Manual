@@ -10,11 +10,8 @@ RMC支持接续文件输出功能。接续功能用于在RMC停止计算后，�
 
 .. code-block:: none
 
-    RESTARTBINARY
-    Write =<flag>
-    Cycles=<cycles_vector_group>
-    Interval=<N>
-    Overwrite=<flag>
+    BINARYOUT
+    RESTARTBINARY Write =<flag> Cycles=<cycles_vector_group> Interval=<N> Overwrite=<flag>
 
 其中，
 
@@ -42,4 +39,8 @@ RMC支持接续文件输出功能。接续功能用于在RMC停止计算后，�
 
     Windows环境：   RMC(空格)-r(空格)重启文件名
        Linux环境：     ./RMC(空格)-r(空格)重启文件名
+
+下面是断点续算功能的使用示例，该示例是在固定源模式下，每1000个粒子数输出接续文件。
+BINARYOUT
+RESTARTBINARY Write = 1 Interval =1000
 
