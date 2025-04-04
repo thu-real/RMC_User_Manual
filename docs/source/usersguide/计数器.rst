@@ -1086,7 +1086,7 @@ Reactionrate选项卡
 
 -  **Attribute**\ 仅在Type=12，particle=2时生效，即光子的能量沉积时，显式区分瞬发光子、缓发光子和俘获光子的能量沉积。详细的描述参考 :ref:`section_energy_release` 节。
 
-- **HDF5Mesh**\ 选项卡制定是否将该网格计数器的结果输出为网格类型的HDF5文件。
+-  **HDF5Mesh**\ 选项卡制定是否将该网格计数器的结果输出为网格类型的HDF5文件。
    **HDF5Mesh = 1**\ 表示输出， **HDF5Mesh = 0**\ （缺省值）表示不输出。
 
 -  **Absolute**\ 选项卡指定绝对值，返回一个倍增因子MultiplicationFactor供用户
