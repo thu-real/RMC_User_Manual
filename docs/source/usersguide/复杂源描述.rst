@@ -1130,6 +1130,7 @@ RMC函数使用
 #.  整个python子程序(source函数)返回给RMC程序的数据必须为python类型；
 #.  source函数返回给RMC程序的数据中，粒子类型与源编号必须是整数，能量、速度、权重、时间必须为浮点数，位置和方向必须为 **元组** 而非 **列表** ；
 #.  可以使用 "ctypes.byref(position_c)" 来传引用给C函数。
+#.  由于随机数设置等原因，外源子程序和结果和使用EXTERNALSOURCE选项的结果不一定严格相等，在编写正确的情况下，二者在统计学意义上应该是一致的；如果想要保证二者的严格一致，必须要参照源码中的源分布抽样流程来编写外源子程序，同时注意随机数调用过程的严格一致；
 #.  对于SamplePosVecBias、SampleCellVecBias这两个函数，返回值为指针类型，使用时应如下设置：
 
 .. code-block:: python
@@ -1161,6 +1162,258 @@ RMC函数使用
 
 外源子程序示例
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+下面将演示如何一步步构建Python外源描述，使其与下面的源描述卡等效：
+
+.. code-block:: c
+
+    UNIVERSE 0
+    cell  3     -10                  mat=1 tmp = 300 //imp:n=1                    // source on surface of this cell
+    //cell  4     -90 & !3 & !8 & !30  mat=2 tmp = 300 //imp:n=1                    // carbon between sources and tally
+    cell  8     -14 & 15 & -16       mat=3 tmp = 300 //imp:n=1                    // tally here
+    cell  30    (-21 & 22 & -23 & 24 : -27) & -25 & 26  mat=4 tmp = 300 //imp:n=1  // volume source here
+    cell  40    90                   mat=0  void=1 //imp:n=0                   // zero-importance outside world
+    cell  4     -90 & 10 & !8 & !30  mat=2 tmp = 300
+
+    SURFACE
+    surf  10   sx -50 12
+    surf  14   py 50 
+    surf  15   py 0
+    surf  16   cy 15
+    surf  21   py 30
+    surf  22   py -16
+    surf  23   px 30
+    surf  24   px 25
+    surf  25   pz 9
+    surf  26   pz -9
+    surf  27   c/z 25 30 4
+    surf  90   so  100 
+ 
+    MATERIAL
+    mat 1   -7 
+    		92238.00c 1 
+    mat 2   -0.9
+    		6000.00c 1		
+    mat 3	-3.7
+    		8016.00c 1 
+    mat 4	-1.2
+    		1001.00c 2  
+    		8016.00c 1  
+    		92235.00c 3
+    CeAce   tms = 1
+
+    FixedSource
+    particle population=200
+    EXTERNALSOURCE
+    source 1 fraction=0.8 biasfrac=0.3 particle=1 surface=10 axis=4 2 0  extent=d1  energy=d2
+    //  使用分布描述extent变量 区间均匀分布
+    //     position biasing on the surface
+    distribution 1 type=4 value=-1 .5 .9 1 probability=1.5 0.4 0.1 bias=.5 .7 .8
+    // 能量概率密度函数：分段线性插值
+    distribution 2 type=5 value=7 10 13 probability=0 1 0
+    source 2 fraction=0.2 biasfrac=0.7 particle=1 cell=30 x=d11 y=d12 z=d13  vector=-3 1 0
+             direcMiu=d14 energy=d15
+    //  分布1 区间均匀分布
+    //     sample x for the cell cover
+    distribution 11 type=4 value=20 30  probability=1
+    //  sample y for the cell cover
+    distribution 12 type=4 value=-17 36 probability=1
+    //  sample z for the cell cover
+    distribution 13 type=4 value=-10 10 probability=1
+    //  exponential biasing in the cell
+    distribution 14 type=-2 value=-1 1.0 probability=0 bias=1.5
+    distribution 15 type=-4 probability=0.965 2.29//瓦特裂变谱，默认参数
+
+首先，写出基本的python输入框架：
+.. code-block:: python
+
+    import ctypes
+    import math
+
+    dll = ctypes.cdll.LoadLibrary('../cmake-build-debug/libRMCPy_Interface.so')
+    rand = dll.RandForPython
+    rand.restype = ctypes.c_double
+
+    GetNeuVel = dll.CalcNeuVel
+    GetNeuVel.restype = ctypes.c_double
+    # GetNeuVel.argtypes = [ctypes.c_double]
+
+    Rotate = dll.Rotate
+    GetRotate = dll.GetRotate
+    SampleSrcBias = dll.SampleDistriBias
+    SampleSrcBias.restype = ctypes.c_double
+    SampleSrc = dll.SampleDistri
+    SampleSrc.restype = ctypes.c_double
+    SampleSpectrum = dll.SampleSpectrum
+    SampleSpectrum.restype = ctypes.c_double
+    CheckCell = dll.IsInCell
+    CheckCell.restype = ctypes.c_bool
+    GetMatCs = dll.GetMatCs
+    GetMatCs.restype = ctypes.c_double
+
+        #整理结果并返回
+        position = (position_c[0], position_c[1], position_c[2])
+        dtime = 0
+        direction = (direction_c[0], direction_c[1], direction_c[2])
+        energy = energy_c.value
+        weight = wight_c.value
+        return [particle_type, position, direction, energy, weight, dtime, source_id]
+
+上述源描述中包含两个源分布，可通过随机数抽样确定每个中子从哪个源发出：
+
+.. code-block:: python
+
+    import ctypes
+    import math
+
+    dll = ctypes.cdll.LoadLibrary('../cmake-build-debug/libRMCPy_Interface.so')
+    rand = dll.RandForPython
+    rand.restype = ctypes.c_double
+
+    GetNeuVel = dll.CalcNeuVel
+    GetNeuVel.restype = ctypes.c_double
+    # GetNeuVel.argtypes = [ctypes.c_double]
+
+    Rotate = dll.Rotate
+    GetRotate = dll.GetRotate
+    SampleSrcBias = dll.SampleDistriBias
+    SampleSrcBias.restype = ctypes.c_double
+    SampleSrc = dll.SampleDistri
+    SampleSrc.restype = ctypes.c_double
+    SampleSpectrum = dll.SampleSpectrum
+    SampleSpectrum.restype = ctypes.c_double
+    CheckCell = dll.IsInCell
+    CheckCell.restype = ctypes.c_bool
+    GetMatCs = dll.GetMatCs
+    GetMatCs.restype = ctypes.c_double
+
+
+    def source(proc_id, num):
+        particle_type = 1
+        position_c = (ctypes.c_double * 3)(0, 0, 0)
+        direction_c = (ctypes.c_double * 3)(0, 0, 0)
+        energy_c = ctypes.c_double(1)
+        velocity_c = ctypes.c_double()
+        wight_c = ctypes.c_double(1)
+        source_id = 0
+        r1 = rand()
+        if r1 < 0.3:
+        #根据source 1的分布进行抽样
+        source_id = 1
+
+        else:
+        #根据source 2的分布进行抽样
+        source_id = 2
+
+        #整理结果并返回
+        position = (position_c[0], position_c[1], position_c[2])
+        dtime = 0
+        direction = (direction_c[0], direction_c[1], direction_c[2])
+        energy = energy_c.value
+        weight = wight_c.value
+        return [particle_type, position, direction, energy, weight, dtime, source_id]
+
+源1中描述的分布是在一个球面源上抽样，且利用axis选项指定参考向量，源在球面上的分布概率与和axis向量的夹角相关，此外，粒子
+出射能量也要根据分布抽样：
+
+.. code-block:: python
+
+    import ctypes
+    import math
+
+    dll = ctypes.cdll.LoadLibrary('../cmake-build-debug/libRMCPy_Interface.so')
+    rand = dll.RandForPython
+    rand.restype = ctypes.c_double
+
+    GetNeuVel = dll.CalcNeuVel
+    GetNeuVel.restype = ctypes.c_double
+    # GetNeuVel.argtypes = [ctypes.c_double]
+
+    Rotate = dll.Rotate
+    GetRotate = dll.GetRotate
+    SampleSrcBias = dll.SampleDistriBias
+    SampleSrcBias.restype = ctypes.c_double
+    SampleSrc = dll.SampleDistri
+    SampleSrc.restype = ctypes.c_double
+    SampleSpectrum = dll.SampleSpectrum
+    SampleSpectrum.restype = ctypes.c_double
+    CheckCell = dll.IsInCell
+    CheckCell.restype = ctypes.c_bool
+    GetMatCs = dll.GetMatCs
+    GetMatCs.restype = ctypes.c_double
+
+
+    def source(proc_id, num):
+        particle_type = 1
+        position_c = (ctypes.c_double * 3)(0, 0, 0)
+        direction_c = (ctypes.c_double * 3)(0, 0, 0)
+        energy_c = ctypes.c_double(1)
+        velocity_c = ctypes.c_double()
+        wight_c = ctypes.c_double(1)
+        source_id = 0
+        r1 = rand()
+        if r1 < 0.3:
+        wight_c.value = wight_c.value * 0.8 / 0.3
+        x = ctypes.c_double()
+        y = ctypes.c_double()
+        z = ctypes.c_double()
+        extent = ctypes.c_double(0)
+        value = (ctypes.c_double * 4)(-1, 0.5, 0.9, 1)
+        prob = (ctypes.c_double * 3)(1.5, 0.4, 0.1)
+        bias = (ctypes.c_double * 3)(0.5, 0.7, 0.8)
+
+        #根据分布进行抽样
+        extent.value = SampleSrcBias(4, ctypes.byref(wight_c), value, 4, prob, bias, 3)
+        energy_c.value = SampleSrc(5, (ctypes.c_double * 3)(7, 10, 13), 3, (ctypes.c_double * 3)(0, 1, 0), 3)
+
+        #根据extent向量抽样粒子位置
+        z.value = extent.value
+        r2 = rand()
+        x.value = math.sqrt(1.0 - z.value ** 2) * math.cos(2 * math.pi * r2)
+        y.value = math.sqrt(1.0 - z.value ** 2) * math.sin(2 * math.pi * r2)
+        position_c[0] = x.value
+        position_c[1] = y.value
+        position_c[2] = z.value
+        rota_mat = ((ctypes.c_double * 3) * 3)((ctypes.c_double * 3)(0, 0, 0), (ctypes.c_double * 3)(0, 0, 0),
+                                               (ctypes.c_double * 3)(0, 0, 0))
+        GetRotate(ctypes.byref(rota_mat), (ctypes.c_double * 3)(4, 2, 0))
+        Rotate(ctypes.byref(rota_mat), ctypes.byref(position_c))
+        position_c[0] *= 12
+        position_c[1] *= 12
+        position_c[2] *= 12
+        position_c[0] += -50
+
+        #抽样粒子的方向，并根据在面源上的位置旋转
+        a = rand()
+        b = rand()
+        d3 = math.sqrt(a)
+        d1 = math.sqrt(1 - d3 ** 2) * math.cos(2 * math.pi * b)
+        d2 = math.sqrt(1 - d3 ** 2) * math.sin(2 * math.pi * b)
+        direction_c[0] = d1
+        direction_c[1] = d2
+        direction_c[2] = d3
+        surf_norm_vector = (ctypes.c_double * 3)(position_c[0] + 50, position_c[1], position_c[2])
+        rota_mat_d = ((ctypes.c_double * 3) * 3)((ctypes.c_double * 3)(0, 0, 0), (ctypes.c_double * 3)(0, 0, 0),
+                                               (ctypes.c_double * 3)(0, 0, 0))
+        GetRotate(ctypes.byref(rota_mat_d), surf_norm_vector)
+        Rotate(ctypes.byref(rota_mat_d), ctypes.byref(direction_c))
+
+        source_id = 1
+
+        else:
+        #根据source 2的分布进行抽样
+        source_id = 2
+
+        #整理结果并返回
+        position = (position_c[0], position_c[1], position_c[2])
+        dtime = 0
+        direction = (direction_c[0], direction_c[1], direction_c[2])
+        energy = energy_c.value
+        weight = wight_c.value
+        return [particle_type, position, direction, energy, weight, dtime, source_id]
+
+源2是位于栅元30内的体积源，且在x、y、z方向上满足特定分布，它的出射角度分布同样需要满足特定要求，加上源2对应的分布之后，
+得到的完整的python外源子程序如下：
 
 .. code-block:: python
 
