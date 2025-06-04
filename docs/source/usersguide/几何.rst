@@ -36,8 +36,9 @@ RMC的CSG几何描述系统包括三类基本的几何描述单元，即，曲�
 
 .. code-block:: none
 
-  Surf <id> <type> {params} [rotate = <params>] [rotateangle = <params>] [move = <params>]
-                            [bc = <flag>] [pair = <pair surf>] [value=<v1 v2 ... vn>] [time=<t1 t2 ... tn>] 
+  Surf <id> <type> {params} [bc = <flag>] [Move = Mx My Mz] [Rotate =Cx'x Cx'y Cx'z Cy'x Cy'y Cy'z Cz'x Cz'y Cz'z ] 
+                            [RotateAngle = \alpha \beta \gamma] [pair = <pair surf>] 
+                            [value=<v1 v2 ... vn>] [time=<t1 t2 ... tn>] 
 
 
 其中，
@@ -52,13 +53,43 @@ RMC的CSG几何描述系统包括三类基本的几何描述单元，即，曲�
 -  **bc**\ 是曲面边界条件（boundary condition）。bc = 0（缺省值）表示真空边界条
    件，bc = 1表示全反射边界条件，bc = 2表示白边界条件，bc = 3表示周期边界条件。
 
--  **Move**\ 面的平移向量
+-  **Move**\ 表示面的平移向量，平移变换的表达式为:
 
--  **Rotate**\ 面的旋转矩阵
+.. math::
 
--  **RotateAngle**\ 面的旋转角。对面进行旋转和平移操作时，顺序为先旋转后平移。
-   注意，程序不支持对包含圆环面(TX/TY/TZ)的旋转，RMC的面的旋转平移功能需使用RMC的python模块进行计算，RMC的python使用方法参见:ref:`section_run_exe`
-   中的python调用RMC运行部分即可。
+    \mathbf{r'} = \mathbf{r} + \mathbf{m}
+
+其中， :math:`\mathbf{r}=(r_x,r_y,r_z)` 和 :math:`\mathbf{r}=(r_x',r_y',r_z')` 分
+别为变换前和变换后的空间任意一点的位置坐标， :math:`\mathbf{m}=(m_x,m_y,m_z)` 为
+平移变换向量。
+
+RMC支持以 **Rotate**\ 和 **RotateAngle**\ 两种形式描述曲面的旋转。
+
+-  **Rotate**\ 表示面的旋转矩阵。RMC实际要求用户输入旋转变换矩阵的
+   转置矩阵 :math:`\mathbf{R}^T` ，其参数按照以下方式定义：给定某直角坐标
+   系 :math:`(x,y,z)` ，它经过该旋转变换后得到新坐标系 :math:`(x',y',z')` ，
+   则 :math:`\mathbf{R}^T` 可表示为
+
+.. math::
+
+    \mathbf{R}^T = \begin{bmatrix} C_{x'x} & C_{x'y} &C_{x'z} \\ C_{y'x}
+    & C_{y'y} &C_{y'z} \\ C_{z'x} & C_{z'y} &C_{z'z} \end{bmatrix}
+
+其中， :math:`C_{x'x}` 表示 :math:`x` 和 :math:`x'` 两个坐标轴之间的夹角余弦，以
+此类推。
+
+-  **RotateAngle**\ 表示面的旋转角，以角度制（degree）输入三个角度：
+   :math:`\alpha, \beta, \gamma` (称为俯仰角，偏航角，翻滚角，参考欧拉角定义方式)，
+   程序内部可以自动生成旋转矩阵。
+
+.. note:: 对面进行旋转和平移操作时，顺序为先旋转后平移
+
+.. note:: 注意，程序不支持对包含圆环面(TX/TY/TZ)的旋转，且Rotate和RotateAngle
+  不能同时使用。
+
+.. important:: 若使用RMC的面的 **Rotate**\ 和 **RotateAngle**\旋转功能，需要RMC的
+   python模块配合进行计算。程序需要使用Python模块进行面旋转的操作，再进行建模计算。RMC的python
+   模块使用方法参见 :ref:`section_run_exe` 中的 **python调用RMC运行** 进行设置
 
 -  **pair**\ 是在周期边界条件下两个周期面的另一个，pair surf 是与该 surf 配对的另
    一个周期面。
@@ -135,6 +166,19 @@ RMC的CSG几何描述系统包括三类基本的几何描述单元，即，曲�
    |                     |        |                   | (\sqrt{(x-x_0)^2+(y-y_0)^2}-A)^2/C^2-1=0`      |                            |
    +---------------------+--------+-------------------+------------------------------------------------+----------------------------+
 
+**曲面旋转示例**
+
+.. code-block:: none
+
+  //垂直x轴，x=50轴处的平面，乘以单位旋转矩阵，旋转后不变
+  Surf 1 px  50 rotate=1 0 0   0 1 0   0 0 1  
+
+  //垂直x轴，x=50轴处的平面，乘以旋转矩阵，绕y轴旋转90度
+  Surf 2 px  50 rotate=0 0 1   0 1 0   -1 0 0  
+
+  //垂直y轴，y=-50轴处的平面，俯仰角(pitch)旋转60度，偏航角(Yaw)旋转30度
+  Surf 3 py  -50 rotateangle = 60 30 0
+
 
 .. _section_geometry_macrobody:
 
@@ -146,7 +190,7 @@ RMC中的宏体定义方式如下：
 
 .. code-block:: none
 
- Body <id> <type> {params} [rotate = <params>] [rotateangle = <params>] [move = <params>]
+ Body <id> <type> {params} [Move = Mx My Mz] [Rotate =Cx'x Cx'y Cx'z Cy'x Cy'y Cy'z Cz'x Cz'y Cz'z ] [RotateAngle = \alpha \beta \gamma]
 
 其中,
 
@@ -157,14 +201,18 @@ RMC中的宏体定义方式如下：
 -  **type**\ 是不同宏体类型所对应的关键词，\ **params**\ 是宏体参数。
    :numref:`bodytypes_table` 给出了RMC支持的宏体类型及相应的宏体参数。
 
--  **Move**\ 宏体的平移向量
+-  **Move**\ 宏体的平移向量，与上一节曲面的平移定义一致。 
 
--  **Rotate**\ 宏体的旋转矩阵
+-  **Rotate**\ 宏体的旋转矩阵，与上一节曲面的旋转定义一致。
 
--  **RotateAngle**\ 宏体的旋转角。对面进行旋转和平移操作时，顺序为先旋转后平移。
-   注意，程序不支持对圆环体(Torus)的旋转。
+-  **RotateAngle**\ 宏体的旋转角，与上一节曲面的旋转定义一致。
 
--  注意，RMC的宏体建模功能必须要调用python模块进行计算。
+.. note:: 对宏体进行旋转和平移操作时，顺序为先旋转后平移。
+
+.. note:: 注意，程序不支持对包含圆环体(Torus)的旋转。
+
+.. important:: RMC的宏体建模功能需要RMC的python模块配合进行计算。RMC的python模块使用方法参见 
+   :ref:`section_run_exe` 中的 **python调用RMC运行** 进行设置。
 
 .. list-table:: 宏体类型
    :name: bodytypes_table
