@@ -31,7 +31,7 @@ RMC支持用户对源粒子的信息如粒子种类、初始位置、初始能�
             [Transform=<transform_id>]
      SurfSrcRead  OldSurf=< S1 S2 S3……Sn >  NewSurf = < S11 S21 S31…Sm1…Smn >
                   Cell=<cell_vector_group>  Party=<params>  Coli=<coli>
-                  Wtm=<wtm> Axis=<x1 x2 x3>   Extent=<id>  Posace=<posace> Tr=<id>
+                  Wtm=<wtm> Axis=<x1 x2 x3>   Extent=<id>  Posace=<posace> Tr=<id> ssr=<flag>
      Distribution  <id>  [Depend = <id>]  Type = <flag>  Value= <params>
                    Probability = <params>  [Bias = <params>]
      Transform  <id>  [Move=<x1 x2 x3>]  [Rotate=<a11 a12 a12 a21……a33>]
@@ -475,47 +475,7 @@ Distribution选项卡
 SurfSrcRead选项卡
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code-block:: none
-
-     SurfSrcRead  OldSurf=< S1 S2 S3……Sn >  NewSurf = < S11 S21 S31…Sm1…Smn >
-                  Cell=<cell_vector_group>  Partype=<params>   Coli=<coli>  Wtm=<wtm>
-                  Axis=<x1 x2 x3>   Extent=<id>  Posace=<posace>  Tr=<id> ssr=<flag>
-
-
-其中，
-
--  **OldSurf**\ 通过指定原来计算中的面，来表示使用穿过这些面的粒子径迹。
-   缺省表示使用原来计算中所有的面
--  **NewSurf**\ 指定原来的面在新的计算中所对应的面。其中一个面可以对应多个面即
-   该输入卡中的面的个数，必须是\ **OldSurf**\ 卡中的面个数的整数倍。当缺省时，默认使用
-   \ **oldsurf**\ 中的面；如果一个面对应多个面，必须在TR中定义对应的关系，两个面大小应当相同。
--  **Cell**\ 通过指定原来计算中的栅元，来表示使用这些栅元中的径迹。
--  **Partype**\ 指定使用的径迹粒子类型，0代表中子，1代表光子。默认包含接续
-   面源文件中包含的径迹类型。
--  **Coli**\ 是指定使用的径迹的碰撞类型，-1表示仅选择没有经历碰撞的径迹，0表示任意径迹都记录，
-   1表示仅记录经历碰撞的径迹。缺省值为0；
--  **Wtm**\ 指定选择的径迹的权重所乘以的倍数。
--  **Axis，Extent，Posace**\ 仅能在输出接续计算文件相应计算\ **SYMM**\ =0情况下使用。
-   \ **Axis**\ 代表定义的轴向，\ **Extent**\ 对指定沿轴向的粒子的偏倚操作，具体在\ **Distribution**\ 卡中定义；
-   其都有两种定义形式：
-   1. \ **Axis**\ =u v w；
-   2. \ **Axis**\ = D+正整数，表示\ **Axis**\ 由\ **Distribution**\ 卡中ID为该正整数的分布来描述。
-   \ **Posace**\ 选择与\ **Axis**\ 对应轴向指定余弦内的粒子。
--  **Tr**\ 指定面面对应关系。当输入为正时，表示相应的对应关系，即空间变换关系。
-   如果是D+正整数，则表示相应的偏倚操作：其定义为D+正整数时，正整数的值表示对应的\ **Distribution**\ 卡中定义的用户索引号，
-   其仅支持离散值的分布，而后会根据相应的\ **Distribution**\ 卡内Type=1内的离散值 定义来进行相应的偏移操作。
--  当接续面源固定源计算中使用的粒子数大于接续面源文件中的粒子历史数，则会重复抽样直到粒子数等于固定源计算中使用的粒子数;反之，则不会重复抽样。
-
--  **ssr**\ 指定是否读入MCNP格式的面源文件，等于1时表示读入的是MCNP格式的面源文件，目前可以读MCNP6.1.1、MCNP5-1.20和MCNP5-1.51格式的
-   面源文件；默认为0，表示读入的RMC格式的面源文件。同时，该功能需要使用RMC的python框架进行计算，新建一个test文件夹(用户可自己命名该文件夹)，
-   同时将RMC的python框架中的runner.py复制到新建的test文件夹下，同时新建一个文件夹workspace(同理，用户可自己命名该文件夹，
-   默认为workspace),将输入卡、RMC的可执行文件、xsdir以及MCNP输出面源文件wssa(如果不是wssa,重命名wssa)复制到workspace文件夹下,然后调用
-   文件夹外的runner.py即可正常运行,在Linux服务器上运行命令为python3 runner.py，如果要在超算上计算，计算命令参考:ref:`section_run_exe`
-   中的python调用RMC运行部分即可。
-
--  如果用户在开启了ssr选项时，不希望将RMC的python框架复制到该计算文件夹时，可使用pyinstaller将runner.py打包为一个可执行文件，然后也可使用
-   该可执行文件进行计算，计算命令不变，在Linux服务器上命令为./runner workspace/inp --mpi mpi核数(将python3 runner.py替换为
-   ./runner)，如果要在超算上计算，计算命令将python3 runner.py替换为./runner即可。
+SurfSrcRead选项卡具体描述参见 :ref:`section_conti_surf` 中的接续面源文件使用模块输入卡。
 
 
 
@@ -822,26 +782,6 @@ Height在（-5,5）上均匀抽样，上述即为按1/4圆柱体积进行均匀�
 该示例定义了两个尺寸相异的圆柱体体积源，半径分别为3厘米和5厘米。需要指出的是，
 2号分布依赖于1号分布（指定圆柱轴线上的参考点），2号分布类型为子分布，两个子
 分布（分别为4号和5号分布）的概率都为0.5（由1号分布决定）。
-
-
--  接续面源文件使用示例
-
-.. code-block:: c
-
-    SurfSrcRead  OldSurf=1 2 NewSurf = 1 2
-    Cell= 3 Partype=0 Coli=1 Wtm=1.0
-
-
-该示例使用原来面序号为12的面上的中子径迹，和栅元3中的中子径迹。权重乘子为1，且为碰撞后径迹。
-
-
-.. code-block:: c
-
-    SurfSrcRead  OldSurf=3 4 NewSurf = 3 4
-    Partype=0 1 Coli=1 Wtm=1.0 ssr=1
-
-
-该示例使用原来面序号为3和4的面上的中子和光子径迹，权重乘子为1，使用mcnp格式的面源文件进行接续计算。
 
 -  坐标变换使用示例
 
