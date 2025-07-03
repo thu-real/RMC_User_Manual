@@ -14,7 +14,7 @@
 
 在运行程序前，需要配置截面数据库。
 
-RMC采用ACE格式中子反应截面数据库，并通过索引文件获得数据库位置进而读取数据。
+RMC采用ACE格式中子反应数据库时，通过索引文件获得数据库位置进而读取数据。
 
  - 将数据库（如Library文件夹）拷贝到计算机某一目录
 
@@ -41,6 +41,24 @@ RMC采用ACE格式中子反应截面数据库，并通过索引文件获得数�
    (3)使用默认路径，默认当前工作目录的路径：
 
      用户应保证“xsdir”索引文件位于当前工作目录。
+
+RMC采用HDF5格式AIS中子反应数据库时，直接根据数据库路径读取数据。目前RMC支持以下几种指定HDF5格式AIS数据库路径的方式：
+
+   (1)命令行指定：
+
+   .. code-block:: none
+
+     mpiexec –n MPI进程数 RMC_MPI_OMP -s OMP线程数 输入文件名 -d 数据库路径
+
+   (2)添加环境变量"RMC_DATA_PATH"，形如：
+
+   .. code-block:: none
+
+     RMC_DATA_PATH=E:\\RMC_DATA （windows）
+     RMC_DATA_PATH=/home/username/RMC_DATA （Linux）
+
+   注意：以上的数据库路径应当是包含HDF5格式AIS数据库的目录，程序会在该目录下自动查找名为”AISNucDatabase“的目录，
+   并根据RMC输入卡中的材料模块指定的参数（同位素名称，数据库版本）在”AISNucDatabase“目录下索引具体的数据文件。
 
 
 哈希数据类型定义
