@@ -526,7 +526,8 @@ RMC的布尔运算符包括交集（&）、并集（:）和补集（!）两种�
     Cell … [Mat = <id>] [Vol = <vol>] [Tmp = <tmp>]
     [Dens = <dens>] [Void = <flag>] [Fill = <id>] [Inner = <flag>]
     [Move = <params>] [Rotate = <params>] [RotateAngle = <params>]
-    [Noburn = <flag>] [FillMove = <params>] [FillRotate = <params>] [FillRotateAngle = <params>]
+    [Noburn = <flag>] [FillMove = <params>] [FillRotate = <params>]
+    [FillRotateAngle = <params>] [PWT = <params>]
 
 
 其中，
@@ -573,6 +574,12 @@ RMC的布尔运算符包括交集（&）、并集（:）和补集（!）两种�
 
 -  **Noburn**\ 选项卡定义该栅元是否参与燃耗计算。\ **Noburn = 0**\ 
    （缺省值）表示不参与燃耗计算，\ **Noburn = 0**\ 表示参与燃耗计算。
+
+-  **PWT**\ 选项卡定义该栅元光子相对权重阈值计算参数w。\ **w>0**\ 权重阈值为
+   w，\ **w<0**\ 权重阈值为-w×w\ :sub:`s`\×I\ :sub:`s`\/I\ :sub:`k`\,
+   I\ :sub:`s`\为源中子栅元重要性，I\ :sub:`k`\为碰撞栅元中子重要性，w\ :sub:`s`\为源中子权重，
+   当中子诱导光子权重大于阈值时才会被产生，否则进行轮盘赌。\ **w=0**\ 时只要能产生光子，
+   每次中子碰撞都强制产生一个光子，\ **w=-1.0e6**\ 在当前栅元中中子产生光子关闭。\ **PWT=-1**\ （缺省值）。
 
 .. _section_geometry_universe:
 
