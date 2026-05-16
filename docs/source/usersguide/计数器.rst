@@ -1093,7 +1093,7 @@ Reactionrate选项卡
                  [ScopeX/ScopeY/ScopeZ = <params>]
                  [BoundX/BoundY/BoundZ = <params>]
                  [mt = <mt>] [Component = <component>]
-                 [Attribute = <attribute>]
+                 [Attribute = <attribute>] [Dose=<dose>]
 		 [MCNPFORMATOUTPUT = <param>]
 
 
@@ -1165,6 +1165,8 @@ Reactionrate选项卡
    比如"ScopeX = 2 8"表示非均匀网格在x方向上共有两个粗网格，每个粗网格内依次有2、8个细网格。
    注意：粗网格边界的数量必须比粗网格数量多1，此外，**程序暂不支持某一方向上只有一层无限大网格的
    非均匀网格**。
+
+-  **Dose**\ 用于统计剂量，使用方法和CellTally中相同。
 
 
 对于某一个MeshTally，均匀化网格参数/非均匀化网格参数仅能二选其一，不可以同时输入。
