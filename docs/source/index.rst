@@ -1,26 +1,45 @@
 =======================
-反应堆蒙卡程序RMC·文档
+Reactor Monte Carlo code RMC·Document
 =======================
 
-\ **反应堆蒙卡程序RMC(Reactor Monte Carlo code)**\ 是由清华大学工程物理系核能科
-学与工程管理研究所反应堆工程计算分析实验室（`REAL`_）自主研发的、用于反应堆计算
-分析的三维粒子输运蒙卡程序。
+The **Reactor Monte Carlo code (RMC)** is independently developed 
+by the Reactor Engineering Analysis Laboratory (`REAL`_) at Institute
+of Nuclear Energy Science and Engineering Management (INESEM), 
+Department of Engineering Physics, Tsinghua University, which is a 
+three-dimensional particle transport Monte Carlo code for 
+reactor simulations and analysis.
 
-RMC针对反应堆计算分析中的基本需求，同时结合先进与新概念反应堆设计时几何结构灵活、
-中子能谱复杂及材料组分多样、各向异性及泄漏强（某些特定情况）等特点进行研发，是多
-物理多尺寸耦合核能系统数值分析平台的物理计算核心。
+Addressing the fundamental requirements in reactor computational 
+analysis while incorporating the characteristics of advanced and 
+novel reactor designs, including flexible geometric structures, 
+complex neutron energy spectra, diverse material compositions, 
+anisotropy, strong leakage (under certain specific conditions), etc., 
+RMC serves as the physical computation core of the numerical 
+analysis platform for multi-physics multi-scale coupled nuclear 
+power systems.
 
+The development of RMC began in 2001. Till now, RMC is capable of 
+handling complex geometric structures and employing continuous
+energy cross-sections to analyze complex energy spectra and 
+materials. RMC can perform calculations for criticality problems, 
+including eigenvalue and eigenfunction calculations, detailed burnup
+simulations of depletion chains, neutron kinetics and transient process
+analysis, on-the-fly nuclear cross-section parallel processing, 
+neutron-photon coupled transport, homogenization and group collapsing, 
+S/U analysis, neutronics and thermal-hydraulics coupling, etc., 
+as required by practical issues. In response to the characteristics 
+of the Monte Carlo method, several geometric processing techniques 
+were developed and applied in RMC, such as geometric processing 
+acceleration, nuclear cross-section processing optimization, 
+new methods for transport process simulation (including hybrid 
+Monte Carlo), source convergence diagnosis and acceleration, 
+tally optimization, large-scale tally and comprehensive parallelism, 
+model visualization, and visual modeling, etc., to improve 
+computational efficiency.
 
-RMC的研发始于2001年，能够处理复杂几何结构、采用连续能量点截面对复杂能谱和材料进
-行描述，并能够根据实际问题的需要对临界问题本征值和本征函数计算、精细核素链燃耗模
-拟、中子动力学与瞬态过程分析、在线核截面并行处理、中子光子耦合输运、均匀化与并群
-、S/U分析、核热耦合等进行计算。并针对蒙卡方法的特点，RMC中研发并应用了几何处理加
-速、核截面处理优化、输运过程模拟新方法（含混合蒙卡）、源收敛判断与加速、计数器优
-化、大规模计数与综合并行、模型可视化与可视化建模等提高计算效率的方法和技巧。
+Current RMC version: RMC 3.5.0
 
-当前RMC版本为：RMC 3.5.0
-
-分支号（git-sha）：c2812db0febb0e664519b72c65edae0f93a02f0f
+Branch (git-sha):
 
 |
 
@@ -31,7 +50,7 @@ RMC的研发始于2001年，能够处理复杂几何结构、采用连续能量�
 .. only:: html
 
 =======
-目录
+Content
 =======
 
 .. toctree::

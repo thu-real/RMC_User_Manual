@@ -1,12 +1,12 @@
 .. _install_index:
 
 ===========
-安装
+Installation
 ===========
 
 .. toctree::
     :numbered:
     :maxdepth: 2
 
-    RMC安装
-    数据库获取
+    rmc_installation
+    obtain_the_database

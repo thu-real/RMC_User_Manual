@@ -77,7 +77,7 @@ else:
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = 'zh_CN'
+language = 'en_US'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -125,9 +125,9 @@ numfig = True
 # Default is to use 'Fig. %s' for 'figure', 'Table %s' for 'table', 'Listing %s' 
 # for 'code-block' and 'Section' for 'section'.
 numfig_format = {
-    'figure': u'图%s',
-    'table':  u'表%s',
-    'code-block': u'示例%s',
+    'figure': u'Fig. %s',
+    'table':  u'Table %s',
+    'code-block': u'Listing %s',
     #'section':  u'Section%s',
 }
 
@@ -227,7 +227,7 @@ html_logo = 'logo/logo_real-removebg.png'
 # Sphinx supports the following languages:
 #   'da', 'de', 'en', 'es', 'fi', 'fr', 'hu', 'it', 'ja'
 #   'nl', 'no', 'pt', 'ro', 'ru', 'sv', 'tr', 'zh'
-#html_search_language = 'zh'
+html_search_language = 'en'
 
 # A dictionary with options for the search language support, empty by default.
 # Now only 'ja' uses this config value
@@ -295,7 +295,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'RMC.tex', u'RMC 文档',
+  (master_doc, 'RMC.tex', u'RMC Documentation',
    u'THU-REAL', 'sphinxmanual'),
 ]
 
