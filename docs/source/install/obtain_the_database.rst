@@ -1,10 +1,10 @@
-.. _database_obtain:
+.. _database_obtain_en:
 
 ==========
 Notes on database
 ==========
 
-.. contents:: Content
+.. contents:: Contents
 
 How to obtain the database
 --------------
