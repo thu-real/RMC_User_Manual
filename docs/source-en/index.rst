@@ -1,6 +1,6 @@
-=======================
+=============================================
 Reactor Monte Carlo code RMC·Document
-=======================
+=============================================
 
 The **Reactor Monte Carlo code (RMC)** is independently developed 
 by the Reactor Engineering Analysis Laboratory (`REAL`_) at Institute
@@ -49,20 +49,15 @@ Branch (git-sha):
 
 .. only:: html
 
-=======
+========
 Content
-=======
+========
 
 .. toctree::
    :maxdepth: 1
 
-   theory/index
-   compile/index
    install/index
    usersguide/index
-   usersguide_english/index
-   developguide/index
-   codedesign/index
 
 
 .. _REAL: http://www.reallab.org.cn

@@ -1,13 +1,13 @@
 .. _database_obtain_en:
 
-==========
+====================
 Notes on database
-==========
+====================
 
 .. contents:: Contents
 
 How to obtain the database
---------------
+-----------------------------
 
 RMC utilizes ACE format neutron cross section libraries (same as MCNP, 
 OpenMC, etc.), which are processed from evaluated nuclear databases 
@@ -16,7 +16,7 @@ OpenMC, etc.), which are processed from evaluated nuclear databases
 Typically, the basic neutron cross section libraries are provided in 
 the RMC package, which are processed from ENDF/B-VII.1 using NJOY. 
 If you have further needs, please contact us (contact@reallab.org.cn
- and https://forum.reallab.org.cn).
+and https://forum.reallab.org.cn).
 
 You can also view or download nuclear data from the `National Nuclear Data Center`_,
 such as `293.6K neutron cross section library`_, `300K neutron cross section library`_, 

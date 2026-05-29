@@ -3,7 +3,7 @@
 Running the RMC Code
 =====================
 
-After compiling (refer to :ref:`compiling`) or obtaining the RMC executable code suitable for the current system from the package, 
+After compiling or obtaining the RMC executable code suitable for the current system from the package, 
 and completing the configuration of the database and writing the input file, you can run the RMC code for calculation.
 
 This section introduces how to run the code, and the subsequent chapters introduce the method of writing input files.
