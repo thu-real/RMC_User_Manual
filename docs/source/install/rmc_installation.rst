@@ -1,14 +1,14 @@
 .. _installing_en:
 
-==========
+============================
 Guidance for Installation
-==========
+============================
 
 .. contents:: Contents
 
 
 Installation Guide for RMC
-------------------
+-------------------------------
 
 Similar to many scientific computing programs, RMC is a console program
 without a graphical user interface (GUI). The core of the program is 
@@ -24,7 +24,7 @@ For the installation of the personal edition, please refer to the following
 documentation.
 
 Installation of Personal Edition
-------------------
+----------------------------------
 
 Installation using Anaconda
 =================================
@@ -41,7 +41,7 @@ specifically `Anaconda3 5.3.1` or `miniconda3 3.7.3`.
 
 
 Installing Anaconda Environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The download links for `Anaconda/miniconda` are as follows:
 
@@ -50,8 +50,8 @@ The download links for `Anaconda/miniconda` are as follows:
    - `Anaconda3 Linux <https://mirrors.tuna.tsinghua.edu.cn/anaconda/archive/Anaconda3-5.3.1-Linux-x86_64.sh>`_
    - `Anaconda3 MacOS <https://mirrors.tuna.tsinghua.edu.cn/anaconda/archive/Anaconda3-5.3.1-MacOSX-x86_64.sh>`_
 - `miniconda3 3.7.3`
-   - `miniconda3 Windows <https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-3.7.3-Windows-x86_64.exe>`_ ,
-    problems may come up when using `Miniconda`, it is recommended to use `Anaconda3`
+   - `miniconda3 Windows <https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-3.7.3-Windows-x86_64.exe>`_ , 
+      problems may come up when using `Miniconda`, it is recommended to use `Anaconda3`
    - `miniconda3 Linux <https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-3.8.3-Linux-x86_64.sh>`_
    - `miniconda3 MacOS <https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-3.8.3-MacOSX-x86_64.sh>`_
 
@@ -72,7 +72,7 @@ add `Anaconda` to the `path` environment variable on `Windows` or to
 the `PATH` environment variable on `Linux/MacOS`.
 
 Creating Virtual Environments
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 One of the most important uses of `Anaconda` is to create virtual 
 environments, which allows for isolation of environment configurations. 
@@ -134,12 +134,12 @@ installation. Subsequently, prepare the following files in the
 calculation directory to proceed with the computation:
 
 - Input card file (assuming the main input card file is named inp, 
-currently RMC supports include functionality, so the input card may 
-consist of multiple files)
+   currently RMC supports include functionality, so the input card may 
+   consist of multiple files)
 - Database index file xsdir, if other features are enabled, additional 
-index files like xsdir_sab may be required
+   index files like xsdir_sab may be required
 - Burnup-related files DepthMainLib (required for burnup calculations)
-Calculation commands are as follows:
+   Calculation commands are as follows:
 
 .. code-block:: bash
 
@@ -162,7 +162,7 @@ you can run the following command:
 
 
 The old installation method
-=====================
+===============================
 
 In the past installation guide, you can copy the RMC executable 
 file to a suitable directory and run it directly
@@ -176,8 +176,8 @@ the executable file has multiple versions, including:
  - System bitness: 32-bit / 64-bit
  - Compilation options: Debug / Release
  - Parallelization: Serial version / MPI parallel version 
- (including different MPI library versions, such as MPICH, 
- OpenMPI, etc.)
+    (including different MPI library versions, such as MPICH, 
+    OpenMPI, etc.)
 
 
 Suitable versions of the executable file should be selected based 
@@ -185,7 +185,7 @@ on the system and configuration, and the way to run the program
 is the same as the calculation commands mentioned above.
 
 Related files for the input of the code
----------------------
+------------------------------------------
 
 RMC's input card writing, please refer to :ref:`usersguide_en` , 
 other database related files are generally provided with the 
