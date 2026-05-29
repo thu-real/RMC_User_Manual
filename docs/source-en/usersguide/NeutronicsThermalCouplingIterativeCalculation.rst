@@ -1,0 +1,564 @@
+.. _section_eng_picard_coupling:
+
+Neutronics-Thermal Coupling Iterative Calculation (Enterprise Version Only)
+===============================================================================
+
+RMC supports neutronics-thermal coupling calculations, where the coupling process is controlled by Python scripts for iterative 
+flow management, utilizing the :ref:`mesh <section_eng_mesh>` feature to obtain and map temperature and density field data.
+
+For non-enterprise version users who wish to perform neutronics-thermal coupling calculations, they can refer to the related 
+content of the :ref:`mesh <section_eng_mesh>` feature to write their own iterative coupling control scripts and manage data transfer.
+
+The input cards related to this feature are found in the criticality input cards. If a coupling calculation with burnup is required, 
+single-step burnup mode is generally used, which in turn affects the burnup input cards.
+
+Input Cards for Neutronics-Thermal Coupling Iterative Calculation
+----------------------------------------------------------------------
+
+For both criticality coupling and burnup coupling, the essential input cards for the iterative coupling process are all located within "CRITICALITY":
+
+.. code-block:: none
+
+    CRITICALITY
+    <Other options under CRITICALITY>
+    Couple MaxIteration = 2 VARY_CYCLE = 200 300 400 VARY_INACTIVE_CYCLE=150 10 10 HDF5_SOURCE=1
+
+where,
+
+-  **Couple** \  is the keyword for the neutronics-thermal coupling iterative calculation input card;
+
+-  **MaxIteration** \  is the maximum number of iterations for each coupling cycle. For example, if there are 4 burnup steps, 
+   the coupling iteration limit for each burnup step is 5 iterations;
+
+-  **VARY_CYCLE** \  is the input card for neutron history growth method. If this card is not included, the source iteration count 
+   remains unchanged for each coupling iteration; if this card is included, the number of digits provided must equal MaxIteration + 1.
+
+-  **HDF5_SOURCE**\  specifies that during the coupling iteration process, the program will read the converged fission source from the output file 
+   ``inp.Source.h5`` of the previous iteration step. This converged fission source will be used as the initial source to begin transport calculations, 
+   thereby accelerating the source convergence process. Users need to include ``fissionsource 1`` in the input card within the :ref:`section_eng_output` module 
+   to control the output of the converged fission source at the end of the computation for use as the initial source in the next iteration.
+
+  .. note:: During the coupling process, the program automatically copies the output file ``inp.source.h5`` from the previous iteration step to the workspace 
+    directory and renames it to  ``convergent_source.h5``. This file serves as the default file for RMC to read the converged source H5 file.
+
+- **VARY_INACTIVE_CYCLE**\   specifies the number of inactive cycles for each iteration step during the coupling iteration process. When used in conjunction 
+  with the ``HDF5_SOURCE`` card, it helps accelerate source convergence during coupling iterations.
+
+  .. note:: This option must be used together with the ``HDF5_SOURCE`` card. If not defined by the user, a warning will be issued, and ``HDF5_SOURCE=1`` will be set by default.
+
+.. important:: The COUPLE card, which is used for controlling coupling iterations, can only be recognized by RMC-Python. Using it directly with RMC will result in an error.
+
+**Note: This card is recognized by Python. Running it directly in RMC will result in an error.**
+
+In the Mesh input card, the file name and dataset remain relatively fixed during the coupling iteration process, specifically as follows:
+
+.. code-block:: none
+
+    Mesh
+    MeshInfo 1 type=1 filename=CTF.h5 datasetname=pin_fueltemps  //fuel temp
+    MeshInfo 2 type=1 filename=CTF.h5 datasetname=channel_liquid_temps  //moderator temp
+    MeshInfo 3 type=1 filename=CTF.h5 datasetname=liquid_density  //moderator density
+
+The corresponding fuel cells need to use the "tmp=-1" option, and the moderator cells need to use the "tmp=-2 dens=-3" option, 
+in order to apply the data from the Mesh.
+
+For neutronics-thermal coupling with burnup, a single-step burnup option and the input card output option need to be added:
+
+The single-step burnup option is as follows:
+
+.. code-block:: none
+
+    BURNUP
+    <Other options under BURNUP>
+    SUCCESSION singlestep = 1 CUMULATIVETIME = 37.91706013572237 CUMULATIVEBURNUP = 0.995
+
+Where,
+
+-  **singlestep** \  is the single-step burnup switch, with a default value of 0 (indicating that single-step burnup is disabled, and the entire burnup
+   process is completed in one go). For neutronics-thermal coupling, it needs to be set to 1 (enable single-step burnup);
+
+-  **CUMULATIVETIME** \  is the accumulated burnup time for the single-step burnup continuation process, in days. Generally, 
+   this does not need to be input by the user, as it is automatically generated by RMC when creating the next step input file 
+   during continuation calculation;
+
+-  **CUMULATIVEBURNUP** \  is the accumulated burnup depth for the single-step burnup continuation process, in MWd/kg. 
+   Similarly, this is automatically generated by RMC.
+
+To enable the input card output option, use the following card in the :ref:`output control <section_eng_output>` 
+
+.. code-block:: none
+
+    PRINT
+    Inpfile <flag>
+
+To set the <flag> to 1, simply adjust the configuration. Additionally, to ensure the correctness of power output results 
+while enabling predictor-corrector corrections, it is necessary to disable the output of corrector steps in the output control by including:
+
+.. code-block:: none
+
+    PRINT
+    BurnupCorrector 0
+
+
+RMC-CTF Coupled Iterative Calculations
+----------------------------------------
+
+RMC can perform coupled iterative calculations with CTF_, a sub-channel thermal-hydraulic analysis program developed by the University of North Carolina.
+During the coupled iteration process, RMC calculates the three-dimensional power distribution of the target object, which is processed by the coupling
+program and used as input for CTF. CTF then calculates the temperature and density fields, which are similarly processed by the coupling program and 
+returned to RMC. This iterative process continues until convergence is achieved.
+
+Coupling Interface Programs Required for RMC/CTF Neutronics-Thermal Coupling Iterations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The RMC/CTF coupling system includes not only these two physical and thermal hydraulic programs but also two coupling interface programs:  rmc2ctf_ and ctf2rmc_ :
+
+``"rmc2ctf"``
+
+   This interface program converts the power distribution output file from RMC transport calculations into a power input file for CTF.
+
+``"ctf2rmc"``
+
+  This interface program processes the fuel rod temperatures, moderator temperatures, and moderator densities obtained from CTF calculations according to specified 
+  mapping relationships, generating grid files required for RMC transport calculations.
+
+Coupling Interface Files Required for RMC/CTF Neutronics-Thermal Coupling Iterations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In the process of neutronics-thermal coupling with CTF, additional information needs to be provided to third-party scripts 
+to automatically generate data formats readable by both RMC and CTF. A total of four input cards are required, as detailed below:
+
+
+``"CoreBound.inp"``
+
+  This file specifies the boundaries for the core coupling iterations. It contains three lines representing the boundaries along the x, y, and z axes 
+  (with the lower values listed first), measured in centimeters.
+
+.. code-block:: none
+
+    -139.776 139.7760
+    -139.776 139.7760
+    0.0 365.76
+
+``"CoreMap.inp"`` 
+
+  This file describes the arrangement of core components. The first line indicates the matrix dimensions of the component distribution; for example, 
+  "13x13". Starting from the second line, the matrix representing the component distribution follows, where a position marked with 0 indicates no component, 
+  while other positions are numbered starting from 1 for each component. After this matrix, the last line specifies the matrix dimensions for the repeating 
+  geometry of single components, such as a standard component of "17x17".
+
+.. code-block:: none
+
+    13 13
+    0   0   0    0    0    1    2    3    0    0    0    0    0
+    0   0   0    4    5    6    7    8    9    10   0    0    0
+    0   0   11   12   13   14   15   16   17   18   19   0    0
+    0   20  21   22   23   24   25   26   27   28   29   30   0
+    0   31  32   33   34   35   36   37   38   39   40   41   0
+    42  43  44   45   46   47   48   49   50   51   52   53   54
+    55  56  57   58   59   60   61   62   63   64   65   66   67
+    68  69  70   71   72   73   74   75   76   77   78   79   80
+    0   81  82   83   84   85   86   87   88   89   90   91   0
+    0   92  93   94   95   96   97   98   99   100  101  102  0
+    0   0   103  104  105  106  107  108  109  110  111  0    0
+    0   0   0    112  113  114  115  116  117  118  0    0    0
+    0   0   0    0    0    119  120  121  0    0    0    0    0
+    17 17
+
+
+``"TotalPower.inp"`` 
+
+  This file specifies the total power of the calculation case, measured in megawatts (MW).
+
+.. code-block:: none
+
+    3411.0
+
+``"GuideTube.inp"`` 
+
+  This file contains the positions of the guide tubes within each component. The number of lines in this file corresponds to the number of guide tubes 
+  in each component. Each line includes two numbers representing the coordinates of each guide tube's position. For example, in a standard 17x17 component, 
+  the positions of the 25 guide tubes would be represented by the values listed in this file.
+
+.. code-block:: none
+
+    3 6
+    3 9
+    3 12
+    4 4
+    4 14
+    6 3
+    6 6
+    6 9
+    6 12
+    6 15
+    9 3
+    9 6
+    9 9
+    9 12
+    9 15
+    12 3
+    12 6
+    12 9
+    12 12
+    12 15
+    14 4
+    14 14
+    15 6
+    15 9
+    15 12
+
+Preparation for RMC/CTF Nuclear Thermal Coupling Iterations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To conduct RMC/CTF coupled iterative calculations, in addition to the RMC input cards and the four interface files mentioned above, you will also need the CTF input cards,
+the CTF preprocessor input cards, and the executable programs for each of the software. Generally, it is recommended to perform these calculations in an empty folder.
+Copy the Python code folder for RMC into this folder and extract the runner.py file from it. Additionally, create a workspace folder where you will copy the RMC and CTF 
+(including the preprocessor and executable programs) as well as the rmc2ctf and ctf2rmc files. Place the input card (inp) and various other input cards into the workspace 
+folder, and set up the database path environment variable "RMC_DATA_PATH".
+
+The final folder structure should be as follows:
+
+.. code-block:: bash
+
+    # The environment variable "RMC_DATA_PATH" should point to the path containing the database index files, such as xsdir.
+    simulations
+    |-- RMC                    # Python code package for RMC
+    |-- runner.py              # Copied from the RMC folder
+    |-- workspace              # Calculation folder
+           |-- inp             # RMC input card
+           |-- CoreBound.inp   # Input card for ctf2rmc
+           |-- CoreMap.inp     # Input card for ctf2rmc
+           |-- GuideTube.inp   # Input card for rmc2ctf
+           |-- TotalPower.inp  # Input card for rmc2ctf
+           |-- geo.inp         # CTF input card (not explained in this manual)
+           |-- assem.inp       # CTF input card (not explained in this manual)
+           |-- control.inp     # CTF input card (not explained in this manual)
+           |-- RMC             # RMC executable
+           |-- cobratf         # CTF executable
+           |-- cobratf_preproc # CTF preprocessor
+           |-- rmc2ctf         # Interface program for generating CTF’s power.inp
+           |-- ctf2rmc         # Interface program for generating the h5 file CTF.h5 for RMC
+
+
+RMC-SUBCHAN Coupled Iterative Calculations
+-------------------------------------------
+
+In addition to coupling with the CTF program, RMC can also couple with the sub-channel program SUBCHAN_. The SUBCHAN program, developed by Professor Yu Jiyang 
+from the Department of Engineering Physics at Tsinghua University, is a three-dimensional thermal-hydraulic analysis program for full-core sub-channels. 
+It can be used for steady-state and transient thermal-hydraulic calculations in pressurized water reactors, boiling water reactors, supercritical water reactors, 
+and more. Similar to the RMC/CTF coupling system, the RMC/SUBCHAN coupling system employs a loosely coupled iterative strategy. During the coupled calculation process, 
+RMC computes the power distribution, SUBCHAN calculates the temperature and density fields, and then data exchange occurs through the coupling program. 
+This iterative process continues until convergence is achieved.
+
+Other Input Cards Required for RMC/SUBCHAN Nuclear Thermal Coupling Iterations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Unlike the RMC/CTF coupling system, RMC/SUBCHAN utilizes a brand-new coupling interface module that is no longer an independent program but is embedded within the RMC Python 
+module as an interface function. Users no longer need to compile separate interface programs; they only need to ensure that both RMC and SUBCHAN executable programs are 
+compiled in the working directory. Additionally, the other input cards required for RMC/SUBCHAN coupled iterative calculations differ from those used in the RMC/CTF coupling
+system. Instead of four interface files used in the RMC/CTF system, the new coupling system requires only one interface file:
+
+- **coupling.yaml**: This is the coupling interface file used to specify parameters for the coupling iterations between RMC and SUBCHAN, including coupling iteration strategies, 
+  total power of the target object, geometric parameters of the target object, etc. The detailed parameters are as follows:
+
+``"scheme"``
+  
+  The coupling iteration strategy, with selectable values of "pin" and "global_pin", where "pin" is the default. "pin" indicates sub-channel modeling based on actual core 
+  geometry, while "global_pin" simplifies core geometry into a large cube for sub-channel modeling. The modeling difficulty is lower with "global_pin" since it simplifies 
+  actual core geometry into a cube; however, its accuracy is lower compared to "pin" due to overestimating flow area at core edges and introducing non-physical mixing effects 
+  in non-core regions.
+
+``"core_power"``
+
+  The total power of the target core, measured in MW.
+
+``"core_bound"``
+
+  The geometric boundaries of the target core composed of boundaries in x, y, and z directions, measured in cm.
+
+  .. code-block:: yaml
+
+        core_bound:
+          x: [ -161.25, 161.25 ]
+          y: [ -161.25, 161.25 ]
+          z: [ 11.951, 377.711 ]
+  
+
+``"mesh_scope"``
+
+  The mesh range of the target core defined by ranges in x, y, and z directions.
+
+  .. code-block:: yaml
+
+        mesh_scope:
+          x: 51
+          y: 51
+          z: 49
+
+  .. note::  During coupled iterations, the program will read mesh ranges from the RMC tally file "MeshTally*.h5", so users do not need to manually specify "mesh_scope"; 
+    it will be automatically read.
+
+  .. caution:: The mesh range settings must be consistent with those in the RMC input file; otherwise, it may lead to errors in reading mesh files.
+
+``"core_map"``
+
+  The arrangement of components in the target core represented as a two-dimensional matrix where rows and columns correspond to component counts in x and y directions 
+  respectively. Each element represents a component number starting from 1; 0 indicates no component at that position.
+
+  .. code-block:: yaml
+
+        core_map:
+          - [1, 2, 3]
+          - [4, 5, 6]
+          - [7, 8, 9]
+
+  .. caution:: Users must specify "core_map"; otherwise, coupled iterative calculations cannot proceed.
+
+``"assembly_map"``
+
+  The arrangement of fuel rods and guide tubes within components represented as a two-dimensional matrix where rows and columns correspond to counts of fuel rods (guide tubes) 
+  in x and y directions respectively. Each element indicates whether it is a fuel rod (1) or a guide tube (0).
+
+  .. code-block:: yaml
+    
+        assembly_map:
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+          - [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+
+  .. note:: If users do not specify "assembly_map", standard Westinghouse 17x17 PWR components will be assumed.
+
+  .. note:: Reference for coupled interface files: download:`coupling.yaml <../../../RMC/controller/examples/coupling.yaml>`
+
+  .. caution:: The current RMC/SUBCHAN coupling system does not support the presence of multiple types of fuel rods within a component. This limitation is not due 
+    to the coupling system itself, but rather because the current SUBCHAN-PREPROC preprocessor does not support generating sub-channel input files that contain 
+    multiple types of fuel rods within a component. If users can independently create sub-channel input files that include various types of fuel rods, then the 
+    coupling system will not encounter any issues. 
+
+Input Files for SUBCHAN Preprocessor SUBCHAN-PREPROC
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For the RMC/SUBCHAN coupling system, users need to prepare the RMC input file "inp", the SUBCHAN input file "SUBCHAN.IN", and the aforementioned coupling interface file 
+"coupling.yaml" in their working directory. However, modeling sub-channels is significantly more complex than modeling physical programs, as the connections between fuel 
+rods and channels, as well as between channels themselves, are extremely intricate. Generally, a sub-channel input file for an entire core can contain hundreds of thousands 
+of lines, making it impractical to manually write such files. To address this issue, we developed the SUBCHAN-PREPROC preprocessor. This preprocessor can be compiled as 
+an independent program or used as an interface function within the RMC/SUBCHAN coupling system. Its main function is to read the preprocessing file "preproc.yaml", parse 
+its information, and automatically generate the sub-channel input file "SUBCHAN.IN". For detailed information about SUBCHAN input files, please refer to the SUBCHAN_ user manual.
+
+For SUBCHAN-PREPROC, its core task is to automatically generate sub-channel input files based on some basic descriptive parameters. These basic descriptive parameters include:
+
+``"core_map"``
+  
+  Consistent with ``"core_map"`` that in the coupling interface file, used to describe the arrangement of core components.
+
+``"assembly_pitch"``
+
+  Center-to-center distance between components, measured in meters.
+
+``"axial_mesh_gries"``
+
+  Axial mesh divisions represented by axial coordinates for each mesh, measured in meters.
+
+``"asssembly_map"``
+
+  Arrangement of fuel rods and guide tubes within components, consistent with ``"asssembly_map"`` that in the coupling interface file.
+
+``"pin_pitch"``
+
+  Center-to-center distance between fuel rods, measured in meters.
+
+``"fuel_rod"``
+
+  Specifies parameters for fuel rods including ``"outer_diameter"``, ``"inner_diameter"``, ``"fuel_density"``, ``"clad_thickness"`` etc.
+
+``"guide_tube"``
+
+   Specifies parameters for guide tubes including ``"outer_diameter"``, ``"inner_diameter"`` etc.
+
+``"spacer_grids"``
+
+  Specifies parameters for spacer grids including ``"number"`` 、 ``"position"`` and mixing factors etc.
+
+``"inlet_enthalpy"``
+
+  Inlet enthalpy supporting either temperature or enthalpy inputs.
+
+``"inlet_mass_flux"``
+
+  Inlet mass flow rate measured in kg/s.
+
+In addition to these necessary input parameters, SUBCHAN-PREPROC includes numerous control parameters whose specific meanings can be referenced in the SUBCHAN_ user manual.
+
+.. important:: For actual reactor core steady-state thermal-hydraulic calculations, users typically only need geometric parameters of the core along with necessary control 
+    parameters such as inlet mass flow rate and inlet enthalpy; default values can often be used for some model inputs.
+
+.. note:: An example input file for SUBCHAN-PREPROC can be found at :download:preproc.yaml <../../../RMC/controller/examples/preproc.yaml>.
+
+Preparation for RMC/SUBCHAN Nuclear Thermal Coupling Iterations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Similar to RMC/CTF coupled iterative calculations, preparations for RMC/SUBCHAN coupled iterative calculations are also required. It is recommended to conduct these
+calculations in an empty folder by copying the Python code folder for RMC into this folder and extracting runner.py. Additionally, create a workspace folder where 
+you will copy both RMC and SUBCHAN executable programs. Unlike before, there is no need to compile separate coupling interface programs since they are embedded as 
+interface functions within the RMC Python module. Therefore, users only need to prepare their RMC input cards, SUBCHAN input cards, and input cards for the coupling system.
+
+.. note:: If users wish to use the SUBCHAN-PREPROC preprocessor, they must prepare preprocessing input file "preproc.yaml" along with SUBCHAN input cards. The 
+    preprocessor will automatically generate file "SUBCHAN.IN".
+
+The final folder structure should look like this:
+
+.. code-block:: bash
+
+    # The environment variable "RMC_DATA_PATH" points to paths such as database index files xsdir.
+    simulations
+    |-- RMC                    # Folder containing RMC Python code package
+    |-- runner.py              # File copied from RMC folder
+    |-- workspace              # Calculation folder
+        |-- inp             # RMC input cards
+        |-- coupling.yaml   # Coupling interface file
+        |-- preproc.yaml    # SUBCHAN-PREPROC preprocessor input file
+        |-- RMC             # RMC executable program
+        |-- subchan         # SUBCHAN executable program
+           
+
+Running Neutronics-Thermal Coupling Iterations
+-----------------------------------------------
+
+To run neutronics-thermal coupling calculations based on RMC's framework using command python3 runner.py, you can add --help at the end to obtain help information on usage options.
+
+.. code-block:: bash
+
+    $ python3 runner.py --help
+    usage: runner.py [-h] [--platform PLATFORM] [--mpi MPI_NUM] [--omp OMP_NUM]
+                     [--assem ASSEM_NUM] [--continue-inp CONTINUE_INP]
+                     [--continue]
+                     inp
+
+    positional arguments:
+      inp                   the path to the input file
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      --platform PLATFORM   platform on which to run the job (default: Linux)
+      --mpi MPI_NUM         the number of MPI processes to use
+      --omp OMP_NUM         the number of OpenMP threads to use in each process
+      --assem ASSEM_NUM     the number of assemblies in the model, default not to
+                            calculate CTF
+      --subchannel SUBCHANNLE_TYPE the type of the subchannel code, default "ctf"
+      --continue-inp CONTINUE_INP
+                            the name of the input file for continuous calculation
+      --continue            whether this calculation is a continuous one or not
+      --ccd                 whether to diagnose the convergence of the coupling calculation (optional)
+
+An example of a specific calculation command:
+
+.. code-block:: bash
+
+    python3 runner.py --platform tianhe --mpi=240 --omp=12 --assem=121 workspace/inp
+
+Where,
+
+-  **platform** \  is the computing platform, and it needs to be set according to the platform-specific parallel computing job submission 
+   commands. Optional values are shown in the table below.
+
+
+.. note:: If you have source code for the RMC-Python portion and need to run it on other platforms, you can add platform support yourself. 
+   For specific methods, see :ref:`Adding a New Computing Platform <section_eng_add_platform>`.
+
+.. table:: RMC-Python Supported Computing Platforms
+  :name: table-platform_eng
+
+  +----------------------+--------------------------------+
+  | Computing Platform   | Keyword                        | 
+  +======================+================================+
+  | **Linux**            | linux                          | 
+  +----------------------+--------------------------------+
+  | **Tianhe-2**         | tianhe2                        | 
+  +----------------------+--------------------------------+
+  | **Tianhe-3**         | tianhe3                        |
+  +----------------------+--------------------------------+
+  | **YinHe System**     | yinhe                          |
+  +----------------------+--------------------------------+
+  | **Tianhe-3 HPC4**    | tianhe3_hpc4                   | 
+  +----------------------+--------------------------------+
+  | **Tianhe-3 HPC5**    | tianhe3_hpc5                   | 
+  +----------------------+--------------------------------+
+  | **Beijing HPC**      | bscc                           |
+  +----------------------+--------------------------------+
+  | **Shuguang HPC**     | shuguang                       | 
+  +----------------------+--------------------------------+
+  | **ShanHE HPC**       | shanhe                         | 
+  +----------------------+--------------------------------+
+
+-  **mpi** \  specifies the number of MPI processes to be used by RMC;
+
+-  **omp** \  specifies the number of OpenMP threads to be used by RMC;
+
+-  **assem** \  specifies the number of assemblies in the model, which also determines the number of MPI processes used by CTF.
+
+-  **subchannel**\  specifies the type of sub-channel program, the optional values are "ctf" and "subchan", with the default value being "ctf".
+
+For a continuous calculation in the coupling iteration process, the command is:
+
+.. code-block:: bash
+
+    python3 runner.py --platform tianhe --mpi=240 --omp=12 --assem=121 workspace/inp \
+      --continue --continue-inp path/to/inp.cycle.2.burnup24.couple3
+
+Where,
+
+- **continue** \  indicates that the calculation is a continuation;
+- **continue-inp** \  points to the input card from the previous step, primarily specifying the cycle and burnup number from the previous step. 
+  In the example, the next step would be the first coupling iteration for cycle 1, burnup 25. Currently, continuation of the couple layer 
+  is not supported, so the value after "couple" should equal MaxIteration.
+
+- **ccd**\ determines whether to enable convergence diagnostics for the coupled calculations. If enabled, the program will perform convergence diagnostics 
+  after each iteration step is completed, calculating the norm and infinity norm of the power distribution, temperature, and density parameters, and outputting 
+  the results to the file ``coupling_convergence.h5``.
+
+.. _section_eng_add_platform:
+
+Adding a New Computing Platform
+----------------------------------
+When you have access to the RMC-Python source code, users can add support for new computing platforms themselves. To add a new computing platform, 
+you need to include the new platform information in the ``RMC/controller/hpc.py`` file, specifically within the ``platforms`` dictionary. Here’s an example:
+
+.. code-block:: python
+  
+    platforms = { "shanhe": Linux(name="shanhe", proc_per_node=56) }
+
+In this example, Linux is a class whose constructor takes two parameters: the name of the platform and the number of MPI processes per node. After adding support for a new platform, 
+users can use the new platform keyword in their execution commands.
+
+As of now, RMC-Python supports the following computing platforms:
+
+:Linux:
+  Suitable for personal computers, servers, etc., running Linux systems. The command to submit parallel computing tasks is ``mpirun -np <mpi> <executable>``. 
+  Additionally, Shanhe HPC also uses the Linux platform.
+
+:TianHeSeries:
+  Suitable for HPCs such as Tianhe-2, Tianhe-3, Tianhe-3 HPC4, Tianhe-3 HPC5, and Galaxy Supercomputing. The command to submit computing tasks is ``yhrun -n <mpi> <executable>``
+
+:BSCC:
+  Suitable for Beijing HPC. The command to submit computing tasks is  ``srun -n <mpi> <executable>``
+
+
+.. _CTF: https://www.ne.ncsu.edu/rdfmg/cobra-tf/
+.. _SUBCHAN: https://gitlab.reallab.org.cn/thu-real/subchan
+.. _rmc2ctf: https://gitlab.reallab.org.cn/guoxiaoyu543/coupleinterface
+.. _ctf2rmc: https://gitlab.reallab.org.cn/guoxiaoyu543/coupleinterface
