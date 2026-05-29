@@ -1,0 +1,45 @@
+{% extends "!layout.html" %}
+
+{% block sidebartitle %}
+    {{ super() }}
+    <div class="language-switcher" style="padding: 10px 0;">
+        <span style="font-weight: bold;">Language / 语言:</span>
+        <strong style="color: var(--color-sidebar-item-text--active, #000);">中文</strong> | 
+        <a href="#" id="switch-to-en" style="text-decoration: underline;">English</a>
+    </div>
+
+    <script>
+        document.getElementById('switch-to-en').addEventListener('click', function(e) {
+            e.preventDefault();
+            var currentPath = window.location.pathname;
+            
+            // 1. 计算出理想的目标英文页面路径
+            var targetPath = currentPath.replace('/zh/', '/en/');
+            var targetUrl = window.location.origin + targetPath;
+    
+            // 2. 发起 HEAD 请求检测该页面是否存在（HEAD 比 GET 快，不下载网页内容）
+            fetch(targetUrl, { method: 'HEAD' })
+                .then(function(response) {
+                    if (response.ok) {
+                        // 页面存在，顺利跳转到对应页面
+                        window.location.href = targetUrl;
+                    } else {
+                        // 页面不存在（如 404），降级跳转到英文首页
+                        redirectToEnHome(currentPath);
+                    }
+                })
+                .catch(function() {
+                    // 网络错误或跨域限制等异常情况，稳妥起见降级到英文首页
+                    redirectToEnHome(currentPath);
+                });
+        });
+    
+        // 辅助函数：计算并跳转到英文根目录
+        function redirectToEnHome(currentPath) {
+            // 假设路径结构为 /项目名/zh/... 
+            // 我们通过截取 /zh/ 之前的部分来动态获取项目的 Base URL
+            var basePath = currentPath.split('/zh/')[0];
+            window.location.href = window.location.origin + basePath + '/en/index.html';
+        }
+    </script>
+{% endblock %}

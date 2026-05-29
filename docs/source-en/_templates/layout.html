@@ -1,0 +1,37 @@
+{% extends "!layout.html" %}
+
+{% block sidebartitle %}
+    {{ super() }}
+    <div class="language-switcher" style="padding: 10px 0;">
+        <span style="font-weight: bold;">Language / 语言:</span>
+        <a href="#" id="switch-to-zh" style="text-decoration: underline;">中文</a> | 
+        <strong style="color: var(--color-sidebar-item-text--active, #000);">English</strong>
+    </div>
+
+    <script>
+        document.getElementById('switch-to-zh').addEventListener('click', function(e) {
+            e.preventDefault();
+            var currentPath = window.location.pathname;
+            
+            var targetPath = currentPath.replace('/en/', '/zh/');
+            var targetUrl = window.location.origin + targetPath;
+    
+            fetch(targetUrl, { method: 'HEAD' })
+                .then(function(response) {
+                    if (response.ok) {
+                        window.location.href = targetUrl;
+                    } else {
+                        redirectToZhHome(currentPath);
+                    }
+                })
+                .catch(function() {
+                    redirectToZhHome(currentPath);
+                });
+        });
+    
+        function redirectToZhHome(currentPath) {
+            var basePath = currentPath.split('/en/')[0];
+            window.location.href = window.location.origin + basePath + '/zh/index.html';
+        }
+    </script>
+{% endblock %}
