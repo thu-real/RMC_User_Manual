@@ -8,30 +8,61 @@
         <strong style="color: var(--color-sidebar-item-text--active, #000);">English</strong>
     </div>
 
-    <script>
-        document.getElementById('switch-to-zh').addEventListener('click', function(e) {
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var langSwitcher = document.querySelector('.language-switcher');
+
+    // 1. 使用 MutationObserver 监听 DOM 树的变化，应对 Read the Docs 异步注入菜单的情况
+    var observer = new MutationObserver(function(mutations, obs) {
+        // 查找 Read the Docs 官方的版本切换悬浮菜单（类名为 .rst-versions）
+        var rtdMenu = document.querySelector('.rst-versions') || document.querySelector('.rst-current-version');
+        
+        if (rtdMenu && langSwitcher) {
+            // 一旦检测到官方菜单存在，立即隐藏我们自定义的语言切换按钮
+            langSwitcher.style.display = 'none';
+            obs.disconnect(); // 停止监听，释放性能
+        }
+    });
+
+    // 开始监听整个 body 的子节点变化
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    // 2. 英文页切换到中文页的逻辑（支持智能路径检测与降级）
+    var switchBtn = document.getElementById('switch-to-zh');
+    if (switchBtn) {
+        switchBtn.addEventListener('click', function (e) {
             e.preventDefault();
             var currentPath = window.location.pathname;
             
-            var targetPath = currentPath.replace('/en/', '/zh/');
+            // 将路径中的 /en/ 替换为 /zh-cn/（匹配你当前的 Read the Docs 配置）
+            var targetPath = currentPath.replace('/en/', '/zh-cn/');
             var targetUrl = window.location.origin + targetPath;
-    
+            
+            // 发起 HEAD 请求检测对应的中文页面是否存在
             fetch(targetUrl, { method: 'HEAD' })
-                .then(function(response) {
-                    if (response.ok) {
-                        window.location.href = targetUrl;
-                    } else {
-                        redirectToZhHome(currentPath);
-                    }
-                })
-                .catch(function() {
+            .then(function (response) {
+                if (response.ok) {
+                    window.location.href = targetUrl;
+                } else {
                     redirectToZhHome(currentPath);
-                });
+                }
+            })
+            .catch(function () {
+                redirectToZhHome(currentPath);
+            });
         });
-    
-        function redirectToZhHome(currentPath) {
-            var basePath = currentPath.split('/en/')[0];
-            window.location.href = window.location.origin + basePath + '/zh/index.html';
-        }
-    </script>
+    }
+
+    // 降级函数：如果找不到对应的中文子页面，则直接跳转到中文首页
+    function redirectToZhHome(currentPath) {
+        // 使用正则匹配 /en/ 之前的基础路径，确保在各种部署环境下都能正确截取
+        var match = currentPath.match(/.*?(?=\/en\/)/);
+        var basePath = match ? match[0] : '';
+        window.location.href = window.location.origin + basePath + '/zh-cn/latest/index.html';
+    }
+});
+</script>
 {% endblock %}
