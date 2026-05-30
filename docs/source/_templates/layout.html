@@ -8,38 +8,55 @@
         <a href="#" id="switch-to-en" style="text-decoration: underline;">English</a>
     </div>
 
-    <script>
-        document.getElementById('switch-to-en').addEventListener('click', function(e) {
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var langSwitcher = document.querySelector('.language-switcher');
+
+    // 使用 MutationObserver 监听 DOM 树的变化，应对 Read the Docs 异步注入菜单的情况
+    var observer = new MutationObserver(function(mutations, obs) {
+        // 查找 Read the Docs 官方的版本的切换菜单（通常是 .rst-versions 或包含 rst-current-version 的组件）
+        var rtdMenu = document.querySelector('.rst-versions') || document.querySelector('.rst-current-version');
+        
+        if (rtdMenu && langSwitcher) {
+            // 检测到 RTD 官方菜单存在，隐藏自定义的语言切换按钮
+            langSwitcher.style.display = 'none';
+            obs.disconnect(); // 停止监听，释放性能
+        }
+    });
+
+    // 开始监听整个 body 的子节点变化
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    // 默认的跳转逻辑保持不变
+    var switchBtn = document.getElementById('switch-to-en');
+    if (switchBtn) {
+        switchBtn.addEventListener('click', function (e) {
             e.preventDefault();
             var currentPath = window.location.pathname;
-            
-            // 1. 计算出理想的目标英文页面路径
-            var targetPath = currentPath.replace('/zh/', '/en/');
+            var targetPath = currentPath.replace('/zh-cn/', '/en/').replace('/zh/', '/en/'); // 兼容 zh-cn 和 zh
             var targetUrl = window.location.origin + targetPath;
-    
-            // 2. 发起 HEAD 请求检测该页面是否存在（HEAD 比 GET 快，不下载网页内容）
+            
             fetch(targetUrl, { method: 'HEAD' })
-                .then(function(response) {
-                    if (response.ok) {
-                        // 页面存在，顺利跳转到对应页面
-                        window.location.href = targetUrl;
-                    } else {
-                        // 页面不存在（如 404），降级跳转到英文首页
-                        redirectToEnHome(currentPath);
-                    }
-                })
-                .catch(function() {
-                    // 网络错误或跨域限制等异常情况，稳妥起见降级到英文首页
+            .then(function (response) {
+                if (response.ok) {
+                    window.location.href = targetUrl;
+                } else {
                     redirectToEnHome(currentPath);
-                });
+                }
+            })
+            .catch(function () {
+                redirectToEnHome(currentPath);
+            });
         });
-    
-        // 辅助函数：计算并跳转到英文根目录
-        function redirectToEnHome(currentPath) {
-            // 假设路径结构为 /项目名/zh/... 
-            // 我们通过截取 /zh/ 之前的部分来动态获取项目的 Base URL
-            var basePath = currentPath.split('/zh/')[0];
-            window.location.href = window.location.origin + basePath + '/en/index.html';
-        }
-    </script>
+    }
+
+    function redirectToEnHome(currentPath) {
+        var basePath = currentPath.match(/.*?(?=\/(zh-cn|zh|en)\/)/)[0];
+        window.location.href = basePath + '/en/latest/index.html';
+    }
+});
+</script>
 {% endblock %}
