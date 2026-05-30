@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", function() {
         switchBtn.addEventListener('click', function (e) {
             e.preventDefault();
             var currentPath = window.location.pathname;
-            var targetPath = currentPath.replace('/en/', '/zh-cn/');
+            var targetPath = currentPath.replace('/en/', '/zh/');
             var targetUrl = window.location.origin + targetPath;
             
             fetch(targetUrl, { method: 'HEAD' })
@@ -38,7 +38,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function redirectToZhHome(currentPath) {
         var match = currentPath.match(/.*?(?=\/en\/)/);
         var basePath = match ? match[0] : '';
-        window.location.href = window.location.origin + basePath + '/zh-cn/latest/index.html';
+        window.location.href = window.location.origin + basePath + '/zh/ndex.html';
     }
 });
 </script>
