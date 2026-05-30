@@ -26,6 +26,16 @@ import sphinx_rtd_theme
 
 # -- General configuration ------------------------------------------------
 
+##################################################################
+# 检测是否在 Read the Docs 环境中构建
+is_rtd = os.environ.get("READTHEDOCS") == "True"
+
+# 将这个变量传递给 HTML 模板上下文
+html_context = {
+    "is_rtd": is_rtd,
+}
+##################################################################
+
 # If your documentation needs a minimal Sphinx version, state it here.
 #needs_sphinx = '1.0'
 
