@@ -237,7 +237,15 @@ Type Card
   |17      |Prompt Fission Energy: Includes energy from fission fragments,     |
   |        |prompt neutrons, and prompt photons. Unit: MeV per particle.       |
   +--------+-------------------------------------------------------------------+           
-
+  |25      |Migration Area,Measured in :math:`cm^2` ,group-wise statistical    |
+  |        |result gives the contribution of each energy group to the total    |
+  |        |migration area.                                                    |
+  +--------+-------------------------------------------------------------------+    
+  |26      |Directional migration area, unit: :math:`cm^2`,                    |
+  |        |calculates the migration area in a certain direction.              |
+  |        |Option selects direction: 1 for x, 2 for y, 3 for z.               |
+  +--------+-------------------------------------------------------------------+    
+  
 Filter Card
 ~~~~~~~~~~~~~~~~~~
 
