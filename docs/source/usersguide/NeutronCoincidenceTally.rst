@@ -46,7 +46,8 @@ FissMult option specifies parameters related to neutron fission (including spont
 
 -  **zaid**\ New multiplicity nuclide ID.
 -  **method**\ indicates Gaussian sampling algorithm. 0 represents using the sine/cosine sampling method; 1 represents using the Lestone method (matching order); 
-   3 represents using the Ensslin/Santi/Beddingfield/Mayo method (1998-2004); the default option is 3.
+   3 represents using the Ensslin/Santi/Beddingfield/Mayo method (1998-2004); 3 represents using the Ensslin/Santi/Beddingfield/Mayo method (1998-2004);5 represents the use of the FREYA code for neutron-induced and spontaneous fission;
+   6 represents the use of the LLNL fission library for neutron-induced, spontaneous, and photofission;7 represents the use of the CGMF code for neutron-induced and spontaneous fission; the default option is 3.
 -  **data**\ indicates Fission sampling algorithm. 0 represents using bounded integer fission sampling; 1 represents using Lestone's re-evaluated nuclide-related 
    Gaussian width; 2 represents using nuclide-related original Terrell Gaussian width; 3 represents using Ensslin/Santi/Beddingfield/Mayo Gaussian width; the default option is 3.
 -  **shift**\ indicates algorithm for correcting the average number of fission neutrons: 0 represents each fission is an integer; 1 represents using the re-evaluated 
