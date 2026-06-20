@@ -1156,6 +1156,58 @@ and it is recommended to use the DEM method for models with a particle packing f
 of the ODR method is approximately 50-60% depending on the size of the particulate and the configuration/shape of the
 stochastic media, hence it is also recommended that the DEM method is used for models with a high particle packing fraction.
 
+Poisson Box Sampling Random Geometry (Enterprise Version Only)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The input options for Poisson Box Sampling Random Geometry are:
+
+.. code-block:: none
+
+    Universe … [Lat = 6] [MATRIC = <UM>] [POISSONBOX = <U1 U2 … UP>] [PF = <pf1 pf2 … pfp>] 
+    [POISSONINTENSITY = <poissonintensity1 poissonintensity2 … poissonintensityP>]
+    [PBSTRACK] [HISTORYNUM] [OVERWRITEPREVIOUSBOX]
+
+
+where,
+
+-  **Lat = 6** indicates random geometry generated via Poisson Box Sampling;
+
+-  **MATRIC** defines the serial number of the universe in which the matrix is located in;
+
+-  **POISSONBOX** defines the serial number of the universe the box(es) comprises of. Different types of boxes 
+   are distinguished by the Ui identifier (to be defined later), and each box corresponds to a
+   single universe serial number;
+
+-  **PF** defines the volumetric fraction that a box occupies in the geometry it fills, or the box packing
+   fraction;
+
+-  **POISSONINTENSITY** defines the intensity of the Poisson boxes, \Lambda. Intensity refers to the average 
+   number of points (events) occurring per unit volume, area, or time. Hence, the intensity refers to the overall average chord length, 
+   and not the individual intensity for each box type. For more information on how intensity is calculated, 
+   please refer to the theory guidebook.
+
+-  **PBSTRACK**\ indicates if the PBS method utilizes box tracking for stochastic media modelling. 
+   If the method is used, the Dynamic Inclusion Sphere method is turned on, and the PBS
+   method will thus consider previous boxes during the generation of new boxes.
+   A value of 0 (default value) indicates that the method is not used and history is not tracked, and a value of 1
+   indicates that the method is used and history is being tracked. (Note 1: **The PBSTRACK
+   method is currently incompatible with the Burnup Mode.**)
+
+-  **HISTORYNUM** indicates the number of box histories to be tracked using the PBSTRACK method, with a default value of 10.
+   The user may input any positive integer. Take note that the larger the number, the longer the computational time.
+
+-  **OVERWRITEPREVIOUSBOX** determines whether previously generated boxes are overwritten 
+   and removed from memory when newly generated boxes overlap with previously generated boxes
+
+Note: **When using the implicit method, due to the characteristics of on-the-fly sampling, the actual geometrical model
+cannot be drawn. If you want to utilize the RMC drawing function, please use the explicit method**.
+
+Note: **When using the PBSTRACK Method (or Semi-Implicit PBS), it must be noted that using different numbers of MPI or
+OpenMP threads will result in different results. This does not indicate that the method is flawed, but is due to how
+RMC handles random numbers. For consistent results, it is recommended that the same number of threads is used
+throughout all operations, or if there is a need to use different numbers of MPI/OpenMP threads,
+the PBSTRACK method is turned off instead.**
+
 Repeating geometric structure of small spheres arranged in regular tetrahedrons
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
