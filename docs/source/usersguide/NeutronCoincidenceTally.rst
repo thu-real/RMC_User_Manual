@@ -29,6 +29,11 @@ Stochastic Neutron Dynamics Input Options
      capmaxnum=<max_number> 
      capmaxmoment=<max_number> 
      normalization=<normal_style>
+     rossialpha = <1>
+     accumrossialpha = <1>
+     timebins = <number>
+     timeinterval = <number>
+     totaltime = <number>
 
 
 Among them,
@@ -69,6 +74,11 @@ celltally option can specify nuclides in specified cells and input pre-delay tim
 -  **capmaxnum**\ specifies the maximum number of coincidences to be tallied, default number is 21.
 -  **capmaxmoment**\ specifies the maximum number of orders to be tallied, default number is 12.
 -  **normalization**\ specifies Normalization method; 0 for historical normalization, 1 for normalization by the total number of initial source neutrons; the default option is 0.
+-  **rossialpha**\ Specifies whether to output the Rossi-alpha value. 0 for no, 1 for yes. Default is 0.
+-  **accumrossialpha**\ Specifies whether to output the cumulative Rossi-alpha value (Feynman-alpha). 0 for no, 1 for yes. Default is 0.
+-  **timebins**\ The time bin width for the Rossi-alpha value. Default is 1e-5s.
+-  **timeinterval**\ The time window width for the cumulative Rossi-alpha value, in seconds (s). Default is 0.001s.
+-  **totaltime**\ The total duration for both Rossi-alpha and cumulative Rossi-alpha calculations, in seconds (s). Default is 0.2s.
 
 Neutron Coincidence Tally Module Input Example
 -----------------------------------------------
