@@ -18,6 +18,7 @@ RMC支持中子符合计数计算功能,基于固定源模式进行计算．具�
 
      TALLY     
      celltally <id> particle=<1> cell=<cell_vector_group> cap=<capture_num> <nuclide_IDs> gate=<pre_delay_time gate_width> capmaxnum=<max_number> capmaxmoment=<max_number> normalization=<normal_style>
+                    rossialpha = <1> accumrossialpha = <1> timebins = <number> timeinterval = <number> totaltime = <number>
       
                
 
@@ -53,6 +54,11 @@ celltally卡可针对指定栅元中的指定核素以及输入预延时时间�
 -  **capmaxnum**\ 统计符合的最大数量，默认为21。
 -  **capmaxmoment**\ 统计阶的最大数量，默认为12。
 -  **normalization**\ 归一化方式；0为按照历史归一化，1为按照初始源中子总数归一化; 默认为0。
+-  **rossialpha**\ 是否输出Rossi-alpha值，0为不输出，1为输出，默认为0。
+-  **accumrossialpha**\ 是否输出累积Rossi-alpha值(Feynman-alpha)，0为不输出，1为输出，默认为0。
+-  **timebins**\ Rossi-alpha值的时间分bin数量，默认为1e-5s。
+-  **timeinterval**\ 累积Rossi-alpha值的时间窗口宽度，单位为s，默认为0.001s。
+-  **totaltime**\ Rossi-alpha与累积Rossi-alpha的总时间，单位为s，默认为0.2s。
 
 中子符合计数模块输入示例
 -------------------------
