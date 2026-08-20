@@ -1202,12 +1202,6 @@ where,
 Note: **When using the implicit method, due to the characteristics of on-the-fly sampling, the actual geometrical model
 cannot be drawn. If you want to utilize the RMC drawing function, please use the explicit method**.
 
-Note: **When using the PBSTRACK Method (or Semi-Implicit PBS), it must be noted that using different numbers of MPI or
-OpenMP threads will result in different results. This does not indicate that the method is flawed, but is due to how
-RMC handles random numbers. For consistent results, it is recommended that the same number of threads is used
-throughout all operations, or if there is a need to use different numbers of MPI/OpenMP threads,
-the PBSTRACK method is turned off instead.**
-
 Repeating geometric structure of small spheres arranged in regular tetrahedrons
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
