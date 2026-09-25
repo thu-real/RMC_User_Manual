@@ -39,7 +39,7 @@ computational efficiency.
 
 Current RMC version: RMC 3.5.0
 
-Branch (git-sha): dc3629e9c7bcabc0e6438476938b819bf020553c 815d370488564ab42d043887696b4db0199af2ad
+Branch (git-sha): cf3e11b767812f7bbc8448c6412b4ae8fff15901 815d370488564ab42d043887696b4db0199af2ad
 
 |
 
