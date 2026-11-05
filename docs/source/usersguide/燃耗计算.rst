@@ -45,7 +45,8 @@ ORIGEN-2的最新点燃耗数据库。
     BurnupStep <burnup_1 burnup_2 ... burnup_n>
     Power <power_1 power_2 ... power_n>
     PowerDen <powerden_1 powerden_2 ... powerden_n>
-    SourceIntensity <source_1 source_2 ... source_n>
+    SourceRate <source_rate_1 source_rate_2 ... source_rate_n>
+    CoupleMode <flag>
     SubStep <sub_num>
     Inherent <fraction>
     AceLib <lib_1 lib_2 ... lib_n>
@@ -75,7 +76,8 @@ ORIGEN-2的最新点燃耗数据库。
     Reactions <nuclide=nuc1 mts=mt_1 mt_2 ... mt_n
               nuclide=nuc2 mts=mt_1 mt_2 ... mt_n
               ...>
-    DecaySource  [Type=<flag>]  [Cell=<cell_1 cell_2 ... cell_n>]  [Energy= e_1 e_2 ... e_n]  
+    DecaySource  [Type=<flag>]  [Cell=<cell_1 cell_2 ... cell_n>]
+                 [CustomBin=<flag>] [Energy= e_1 e_2 ... e_n] [LibType=<flag>]
                  [SecondSourceStartStep=<step_1 step_2 ... step_n>]    
     DecayData  [radioactivity=<flag>] [decayheat=<flag>] [Cell=<cell_1 cell_2 ... cell_n>]
     SU <Maxnuc = s1>
@@ -109,8 +111,17 @@ ORIGEN-2的最新点燃耗数据库。
    总质量得到实际总功率，并在每个燃耗步当中根据各燃耗区的功率分布得到每个燃耗区的实际功
    率。为计算初始重金属总质量和功率分布，用户应为燃耗栅元指定正确的体积。
 
--  **SourceIntensity**\ 输入卡指定各个燃耗步的中子源强（n/cm2s）。程序将根据蒙卡统计的
-   中子通量分布，计算出每个燃耗区在该源强下的真实中子通量，从而进行定通量辐照计算。
+-  **SourceRate**\ 输入卡指定固定源-燃耗（活化）计算中各个活化步的中子源强，单位为 n/s。
+   使用该输入卡时，用户应在输入文件中同时定义 \ **FixedSource**\ 与 \ **ExternalSource**\ 模块，
+   由固定源中子输运统计活化栅元中的通量和反应率，再按源强归一化后进行点燃耗/活化计算。
+   \ **SourceRate = 0**\ 表示对应活化步为纯衰变步，程序跳过该步的固定源输运，仅进行点燃耗衰变计算。
+   \ **SourceRate**\ 必须与 \ **TimeStep**\ 配合使用，不支持 \ **BurnupStep**\ 。
+
+-  **CoupleMode**\ 输入卡指定固定源输运与活化计算的耦合方式。\ **CoupleMode = 1**\ （缺省）
+   为复杂耦合模式，每个非纯衰变活化步都重新进行一次固定源输运；\ **CoupleMode = 2**\ 为简单耦合模式，
+   仅在进入燃耗循环前进行一次固定源输运，后续活化步复用同一次输运结果。简单耦合模式主要用于
+   :ref:`section_r2s` 等源项不随活化步重新求解的两步法流程。
+   \ **CoupleMode = 2**\ 仅支持固定源-燃耗（活化）计算，临界燃耗计算须使用缺省值 1。
 
 -  **SubStep**\ 输入卡指定点燃耗计算的步数（范围1 - 9999），缺省值为10步。对
    于一般用户，不推荐使用该输入卡修改默认参数。
@@ -346,9 +357,19 @@ ORIGEN-2的最新点燃耗数据库。
    - **Cell**\ 表示栅元编号，\ *输入的参数为用户定义的简单栅元编号cell_i（而非层级栅元的向量形式）* \ ，
      程序将根据输入的编号自动展开并输出相应栅元的衰变源能谱及强度。需要注意的是，设置的栅元必须为燃耗栅元或活化栅元。
 
-   - **Energy**\ 表示离散能量，单位是MeV，该能量由用户自定义。
+   - **CustomBin**\ 控制衰变光子源能谱的输出方式。\ **CustomBin = 0**\ （缺省）输出精细光子源（逐条谱线，
+     对应复杂源中的 Distribution ``type = 1``）；\ **CustomBin = 1**\ 表示将光子源按用户给定的能量边界分箱
+     输出（直方图谱，对应 Distribution ``type = 4``），此时必须同时给出 \ **Energy**\ 选项卡。
 
-     .. caution:: 用户定义的离散能量必须是一个递增的数列，否则计算结果将会出现错误。
+   - **Energy**\ 在 \ **CustomBin = 1**\ 时给出分箱的能量边界（单位 MeV），由用户自定义。
+
+     .. caution:: 用户定义的能量边界必须是一个递增的数列，否则计算结果将会出现错误。
+
+   - **LibType**\ 指定 ``neutron_hdf5`` 谱强度的单位约定。\ **LibType = 0**\ （缺省）的强度为
+     光子/(原子·秒)，已包含 λ，适用于更新后的谱库；\ **LibType = 1**\ 仅兼容强度为光子/衰变的
+     旧库，由程序补乘 λ。该选项不切换文件格式。
+
+     .. important:: 对已含 λ 的谱使用 \ **LibType = 1**\ 会重复乘 λ。
 
    - **SecondSourceStartStep**\ 表示进行二次源强计算开始的燃耗步，即以统计出的每个燃耗点的每个栅元中的衰变源为
      固定源模式下的初始源，该模块需要用户在临界-燃耗计算输入卡中额外写入 \ **FixedSource**\控制模块，以及需要的
@@ -429,6 +450,41 @@ RMC燃耗计算时间项支持燃耗深度步长、时间步长输入，功率�
 
    注意：“Universe 0” 空间对应的几何层级level = 0，以此类推。燃耗区合并功能可以
    针对普通压水堆和随机介质模型。MERGE功能只能合并同一层级的多个Universe。
+
+
+.. _section_burn_activation:
+
+固定源-燃耗（活化）计算与衰变光子源
+--------------------------------------
+
+固定源-燃耗计算用于聚变/活化等问题：以中子固定源代替临界计算驱动燃耗，统计活化产物随时间的累积，
+并输出停堆后的衰变光子源。其输入卡在普通燃耗计算的基础上做如下调整：
+
+1. 使用 \ **FixedSource**\ 与 \ **ExternalSource**\ 模块定义中子源（而非 \ **Criticality**\ ）；
+2. 在 \ **BURNUP**\ 模块中用 \ **ActivationCell**\ 指定活化栅元，并用 \ **SourceRate**\
+   给出各活化步的中子源强；若某步源强为 0，则该步为纯衰变步并跳过输运；
+3. 用 \ **DecaySource**\ 卡指定需要输出衰变光子源的栅元（见上文 \ **DecaySource**\ 选项说明）。
+
+一个最简输入卡的关键部分如下：
+
+.. code-block:: none
+
+    FixedSource
+    Particle population = 1e5
+
+    ExternalSource
+    Source 1 particle = 1 position = 5 15 5 energy = 14   // 14 MeV 中子点源
+
+    BURNUP
+    ActivationCell  1 2 3 4 5
+    SourceRate      1e10 1e10 2.5e10 2.5e10
+    CoupleMode      1
+    TimeStep        3.5 1.5 5 5
+    DecaySource type = 1 cell = 1 2 3 4 5
+
+计算完成后，各燃耗步、各活化栅元的衰变光子源（能量与强度）写入 ``<inp>.Result.h5`` 文件的
+``Burnup/StepN/GammaSource`` 数据集。该衰变光子源即为 R2S 第二步光子输运的源项，
+其自动化流程见 :ref:`section_r2s` 。
 
 
 .. _section_burn_example:

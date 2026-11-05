@@ -47,7 +47,8 @@ Burnup Module Input Card includes the following:
     BurnupStep <burnup_1 burnup_2 ... burnup_n>
     Power <power_1 power_2 ... power_n>
     PowerDen <powerden_1 powerden_2 ... powerden_n>
-    SourceIntensity <source_1 source_2 ... source_n>
+    SourceRate <source_rate_1 source_rate_2 ... source_rate_n>
+    CoupleMode <flag>
     SubStep <sub_num>
     Inherent <fraction>
     AceLib <lib_1 lib_2 ... lib_n>
@@ -77,7 +78,8 @@ Burnup Module Input Card includes the following:
     Reactions <nuclide=nuc1 mts=mt_1 mt_2 ... mt_n
               nuclide=nuc2 mts=mt_1 mt_2 ... mt_n
               ...>
-    DecaySource  [Type=<flag>]  [Cell=<cell_1 cell_2 ... cell_n>]  [Energy= e_1 e_2 ... e_n]  
+    DecaySource  [Type=<flag>]  [Cell=<cell_1 cell_2 ... cell_n>]
+                 [CustomBin=<flag>] [Energy= e_1 e_2 ... e_n] [LibType=<flag>]
                  [SecondSourceStartStep=<step_1 step_2 ... step_n>]    
     DecayData  [radioactivity=<flag>] [decayheat=<flag>] [Cell=<cell_1 cell_2 ... cell_n>]
     SU <Maxnuc = s1>
@@ -108,9 +110,19 @@ Among them,
    initial heavy metal mass and obtain the actual power for each burnup cell based on the power distribution for each burnup step. 
    To calculate the initial heavy metal mass and power distribution, users should specify the correct volume for burnable cells.
 
--  **SourceIntensity** \  option specifies the neutron source intensity for each burnup step (n/cm²s). The module will calculate the 
-   actual neutron flux for each burnup cell under this source intensity according to the neutron flux distribution from Monte Carlo statistics and 
-   perform constant flux irradiation calculations.
+-  **SourceRate** \  option specifies the neutron source rate for each fixed-source burnup/activation step, in n/s.
+   When this option is used, the input should also define the \ **FixedSource** \  and \ **ExternalSource** \  modules.
+   RMC obtains the flux and reaction rates in activation cells from fixed-source neutron transport, normalizes them by the source rate,
+   and then performs the point depletion/activation calculation. \ **SourceRate = 0** \  marks a decay-only step; fixed-source
+   transport is skipped for that step and only point-depletion decay is performed.
+   \ **SourceRate** \  requires \ **TimeStep** \ ; \ **BurnupStep** \  is not supported.
+
+-  **CoupleMode** \  option specifies the coupling mode between fixed-source transport and activation. \ **CoupleMode = 1** \  (default)
+   is the complex coupling mode, in which every non-decay activation step reruns fixed-source transport. \ **CoupleMode = 2** \  is the
+   simple coupling mode, in which fixed-source transport is performed once before the burnup loop and reused by later activation steps.
+   The simple coupling mode is mainly used by two-step workflows such as :ref:`section_eng_r2s`, where the neutron source is not
+   re-solved at each activation step.
+   \ **CoupleMode = 2** \  is only supported for fixed-source burnup/activation; criticality burnup requires the default value 1.
 
 -  **SubStep** \  option specifies the number of sub-steps for point burnup calculations (range 1-9999), with a default value of 10 sub-steps. 
    It is generally not recommended for ordinary users to modify this default parameter.
@@ -335,27 +347,41 @@ Among them,
    .. note:: The user-specified nuclides and reaction channels to be scored via the ``Reactions`` option apply to all burnup cells.
        As the number of reaction channels to be scored increases, the computation time of the code will increase accordingly, so it should be used with caution.
 
--  **DecaySource** \  indicates the decay source strength and energy spectrum to be scored, the results will be output to the .Result.h5 file.
+-  **DecaySource** \  indicates the decay photon source strength and energy spectrum to be scored. The results are written to the
+   ``.Result.h5`` file.
 
-   -  **Type** \  indicates the type of decay source to be counted, default is 1. At present, only the decay gamma spectrum is supported, i.e. type=1.
+   -  **Type** \  indicates the type of decay source to be scored. The default value is 1. At present, only the decay gamma
+      spectrum is supported, i.e. ``type = 1``.
 
-   -  **Cell** \  indicates the cell number, \ **the input parameter is a user-defined simple cell number cell_i, instead of the vector form of hierarchical cell** \ ,
-      the programme will automatically expand and output the decay source spectrum and intensity of the corresponding cell according to the input number. It should be noted that the 
-      cells set must be burnup cells or activation cells.
+   -  **Cell** \  indicates the cell number. \ *The input parameter is a user-defined simple cell number cell_i, not the vector
+      form of a hierarchical cell.* \  RMC automatically expands the specified cells and outputs the decay source spectrum and
+      intensity for the corresponding cells. The specified cells must be burnup cells or activation cells.
 
-   -  **Energy** \  indicates the discrete energy in MeV, which is user-defined. 
+   -  **CustomBin** \  controls the spectrum representation of the decay photon source. \ **CustomBin = 0** \  (default) outputs
+      a fine point-wise photon source, corresponding to complex-source Distribution ``type = 1``. \ **CustomBin = 1** \  collapses
+      the photon source into user-defined energy bins, corresponding to Distribution ``type = 4``. In this case the \ **Energy** \ 
+      option must also be given.
 
-     .. caution:: The user-defined discrete energy must be an increasing series, otherwise the calculation result will be wrong.
+   -  **Energy** \  gives the energy bin boundaries in MeV when \ **CustomBin = 1** \ .
 
-   -  **SecondSourceStartStep** \  indicates the burnup step at which the secondary source strength calculation is performed. The decay source in each cell at each burnup depth is scored, and  
-      used as the initial source in the fixed source mode, and this module requires the user to additionally write the \ **FixedSource** \  control module to the criticality-depletion 
-      Calculation Input card, as well as the required \ **Physics** \  card, and invoke the calculation through the python module, the code will generate the initial source in the fixed source 
-      mode from the decay sources scored in the critical mode, and carry out the subsequent secondary source strength distribution calculation.
+     .. caution:: The user-defined energy boundaries must be an increasing sequence; otherwise the calculation result will be wrong.
 
-     .. important:: The C++ module does not support the reading of ``SecondSourceStartStep`` cards, so if you want to use the two-step method to calculate the secondary source strengths, 
-      you have to use the python module of RMC.
+   -  **LibType** \  specifies the intensity units in ``neutron_hdf5``. \ **LibType = 0** \  (default) uses photons/(atom s),
+      includes lambda, and applies to the updated library. \ **LibType = 1** \  supports older spectra in photons/decay;
+      RMC supplies lambda. This option does not select a different file format.
 
-   The user can follow the above options to score the decay sources and perform calculations such as secondary neutron source strengths by specifying a secondary fixed source calculation mode.
+      .. important:: Using \ **LibType = 1** \  with intensities that include lambda counts lambda twice.
+
+   -  **SecondSourceStartStep** \  indicates the burnup step at which the secondary source strength calculation starts. The decay
+      source in each cell at each burnup depth is scored and used as the initial source in fixed-source mode. This workflow requires
+      the \ **FixedSource** \  control module and the required \ **Physics** \  card in the criticality-depletion input card, and is
+      invoked through the RMC Python module.
+
+     .. important:: The C++ module does not support reading ``SecondSourceStartStep`` cards. Use the RMC Python module for this
+        secondary-source workflow.
+
+   The user can follow the above options to score decay sources and perform calculations such as secondary source strength
+   calculations by specifying a secondary fixed-source calculation mode.
 
 -  **DecayData**\  indicates the decay data that needs to be collected, supporting the statistics of radioactive activity and decay heat. The statistical results will be output to .Result.h5 file.
 
@@ -427,6 +453,43 @@ Where:
 
 .. caution:: Note: "Universe 0" corresponds to geometric hierarchy level = 0, and so on. The burnup region merging function can be applied to both ordinary pressurized water reactors and random medium models. 
    The MERGE function can only merge multiple Universes at the same hierarchy level.
+
+
+.. _section_eng_burn_activation:
+
+Fixed-Source Burnup/Activation Calculation and Decay Photon Source
+--------------------------------------------------------------------------------
+
+Fixed-source burnup is used for fusion/activation problems. A neutron fixed source replaces the criticality calculation
+to drive burnup/activation, track the buildup and decay of activation products, and output the shutdown decay photon source.
+Compared with ordinary burnup input, the main requirements are:
+
+1. Use the \ **FixedSource** \  and \ **ExternalSource** \  modules to define the neutron source, instead of \ **Criticality** \ ;
+2. In the \ **BURNUP** \  module, use \ **ActivationCell** \  to specify activation cells and \ **SourceRate** \  to specify
+   the neutron source rate for each activation step. If the source rate of a step is 0, that step is treated as a decay-only
+   step and transport is skipped;
+3. Use \ **DecaySource** \  to specify the cells for which decay photon sources should be written.
+
+A minimal key input fragment is shown below:
+
+.. code-block:: none
+
+    FixedSource
+    Particle population = 1e5
+
+    ExternalSource
+    Source 1 particle = 1 position = 5 15 5 energy = 14   // 14 MeV neutron point source
+
+    BURNUP
+    ActivationCell  1 2 3 4 5
+    SourceRate      1e10 1e10 2.5e10 2.5e10
+    CoupleMode      1
+    TimeStep        3.5 1.5 5 5
+    DecaySource type = 1 cell = 1 2 3 4 5
+
+After the calculation, the decay photon source energy and intensity for each activation cell and burnup step are written to
+the ``Burnup/StepN/GammaSource`` dataset in ``<inp>.Result.h5``. This decay photon source can be used as the source term
+for the second-step photon transport in R2S; see :ref:`section_eng_r2s`.
 
 
 .. _section_eng_burn_example:
