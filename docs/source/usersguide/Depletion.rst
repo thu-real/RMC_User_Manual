@@ -135,6 +135,8 @@ Among them,
    
    - **GammaLibPath**\ specifies the absolute path to the database related to decay photon spectra, typically located in the neutron_hdf5 folder under RMC_DATA. 
      When using the decay photon spectrum calculation function in point burnup mode, this must be specified, e.g., /home/workspace/RMC_DATA/neutron_hdf5.
+     Use the same spectrum directory as burnup/activation. Energies are in MeV and intensities are in photons/(atom s),
+     already including lambda; no additional multiplication by lambda is applied.
 
 
 It should be noted that calculation modes, solver parameters, and output options can be specified as needed and do not need to be included if not required.

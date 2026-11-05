@@ -21,6 +21,7 @@ User Manual
     SourceConvergenceAndAcceleration
     BurnupCalculation
     Depletion
+    R2S
     OutputControl
     Plot
     FixedSourceCalculation
