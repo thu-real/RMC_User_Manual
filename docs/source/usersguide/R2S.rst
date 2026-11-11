@@ -22,6 +22,10 @@ photon source becomes the second-step photon source, and photon transport conver
 The user only needs to prepare one Step-1 activation input file and add an :ref:`R2S control card <section_eng_r2s_card>`.
 The Step-2 photon transport input is generated and run automatically.
 
+The Python workflow supports both the conventional scalar source at ``Burnup/StepN/GammaSource`` and direct reading
+of the full-order source at ``Burnup/StepN/FETGammaSource``. The FET source retains spatial modes inside each coarse
+region. See :ref:`section_eng_r2s_fet_source` for manual and automatic workflows.
+
 .. _section_eng_r2s_step1_input:
 
 Step-1 Input Requirements
@@ -92,19 +96,22 @@ Python control module and is not written to the input card passed to the RMC exe
 
 Options:
 
--  **Step** \ : selects which burnup/activation step provides the decay photon source for Step 2. The default is the last
-   activation step.
+-  **Step** \ : selects which burnup/activation step provides the decay photon source for Step 2. It must be a
+   nonnegative integer no greater than the number of irradiation and decay steps, and the selected step must contain
+   a usable decay photon source. The default is the final step, including a final cooling step.
 
--  **Population** \ : number of particles for Step-2 photon transport. The default is the ``population`` in Step-1
-   \ **FixedSource** \ .
+-  **Population** \ : number of particles for Step-2 photon transport, an integer of at least 101.
+   The default is the ``population`` in Step-1 \ **FixedSource** \ .
 
 -  **Spectrum** \ : spectrum representation of the Step-2 photon source.
 
-   - ``fine`` (default): uses point-wise fine photon lines, corresponding to Distribution ``type = 1``;
-   - ``bin``: collapses the photon source into the energy boundaries given by \ **Energy** \ , corresponding to Distribution
-     ``type = 4``. The \ **Energy** \  option must be provided in this mode.
+   - ``fine`` (default): uses discrete photon lines. Scalar sources generate Distribution ``type = 1``; full-order
+     FET sources are read directly through ``FETGAMMASOURCE``;
+   - ``bin``: applies only to scalar sources and groups them into the boundaries given by \ **Energy** \ , using
+     Distribution ``type = 4``. \ **Energy** \ is required. FET automation supports only ``fine``.
 
--  **Energy** \ : gives increasing energy boundaries in MeV when ``Spectrum = bin``.
+-  **Energy** \ : gives at least two finite, nonnegative, strictly increasing energy boundaries in MeV when
+   ``Spectrum = bin``. Omit this option for FET automation.
 
 -  **DoseTally** \ : specifies the tally used for final dose-rate calculation. The format is
    ``DoseTally = <type> <id>``, where ``type`` is ``cell`` or ``mesh`` and ``id`` is the tally id. See
@@ -179,11 +186,116 @@ Run R2S through the RMC Python module, the same way as ordinary burnup calculati
 \ **R2S** \  module, the program automatically runs the two steps in sequence:
 
 - Step-1 activation results are archived under ``archive/burnup/``. The decay photon source is located in
-  ``Burnup/StepN/GammaSource`` in ``<inp>.burnup.Result.h5``;
+  ``Burnup/StepN/GammaSource`` in ``<inp>.burnup.Result.h5``; full-order FET sources use ``Burnup/StepN/FETGammaSource``;
 - Step-2 photon transport results are archived under ``archive/r2s_photonN/``, where ``N`` is the selected activation step.
   The dose rate is written to the ``.Tally`` file in that directory;
 - The run log prints the total decay photon source strength for the selected step, for example
   ``R2S: total decay photon source strength at Step4 = 2.614183E+08``.
+
+
+.. _section_eng_r2s_fet_source:
+
+Full-Order FET Decay Photon Source
+------------------------------------------
+
+\ **DECAYSOURCE** \ is off by default for FET burnup. The full-order FET decay photon source is written to
+``Burnup/StepN/FETGammaSource`` in ``<inp>.Result.h5`` only when this card is explicitly present in the Step-1
+\ **BURNUP** \ module. The supported scope is fixed-source ``SOURCERATE`` activation, ``COUPLEMODE 2`` (SIMPLE),
+and discrete photon lines. For direct transport, omit ``ENERGY`` and either omit ``CUSTOMBIN`` or set it to ``0`` in
+\ **DECAYSOURCE** \ . The direct sampler accepts local bounded source regions with second-order radial and first-order
+axial expansions (R2-A1). All source-bearing regions must share the same axis and origin, must not overlap in R-A
+source space, and must use local coordinates equal to global coordinates. Untransformed nested universes are accepted;
+translated, rotated, or lattice instances are not supported for direct transport.
+Other supported orders may still be written, but they cannot be transported directly through this interface.
+
+Step 2 samples ``r^2`` and axial position from the full-order FET source density, with uniform azimuth and an isotropic
+outgoing direction.
+To keep the sampled source density nonnegative, the reader uniformly scales each energy line's higher-order
+coefficients as needed, preserving each line's volume-integrated intensity and the total source strength.
+
+In ``Burnup/StepN/FETGammaSource/<field>``, ``EnergyMeV`` contains the line energies.
+``CoefficientPhotonsPerSecond`` stores coefficients in photon/s, with energy as the outer index and mode as the
+inner index. ``ModeOrders`` defines the ordering: (0,0), (0,1), (1,0), (1,1), (2,0), (2,1) for R2-A1.
+Each line's zero-order coefficient is the total photon emission rate at that energy in the region, equal to the
+corresponding ``VolumeIntegratedPhotonsPerSecond`` entry. Reconstruct all modes and divide by ``VolumeCm3`` to obtain
+the local source density in photon/(s cm³).
+``TotalVolumeIntegratedPhotonsPerSecond`` is the field total, and the collection attribute ``TotalPhotonsPerSecond``
+is the sum over fields. A field without emission lines retains ``EnergyCount=0`` and a zero total; energy and
+spectrum arrays are omitted. ``DirectTransportReady=1`` indicates compatibility with the direct transport interface.
+
+The following continues the example in :ref:`section_eng_burn_fet`, where cell 4 is irradiated for 0.1 d and cooled
+for 10 d. Select ``Step2``, the end of cooling. Assume the Step-1 input is named ``activation`` and both inputs
+are in the same directory. Retain the geometry and materials, remove the \ **BURNUP** \ module, and use the following
+photon transport, source, and tally blocks for Step 2:
+
+.. code-block:: none
+
+    FixedSource
+    Particle population = 1000000
+
+    ExternalSource
+    FETGAMMASOURCE FILE=activation.Result.h5 STEP=2
+
+    Physics
+    ParticleMode P
+    Photon PPRODUCEE=1 TTB=1
+
+    Tally
+    CellTally 2 Type=1 Particle=2 Cell=4 Volume=26.4050862534
+        Energy=0.01 0.1 0.5 1 2 5 10 20 DoseRate=ICRP-119-ISO
+
+Cell 4 has a radius of 0.41 cm, a height of 50 cm, and a volume of 26.4050862534 cm\ :sup:`3`.
+``CellTally 2`` scores photon flux in this cell and outputs the dose rate using ISO coefficients.
+Set ``DoseRate=ICRP-119-AP`` to use AP coefficients.
+
+``FILE`` points to the Step-1 ``Result.h5`` and must not contain whitespace. A relative path is resolved from the
+directory containing the Step-2 input. Write ``FILE=...`` and ``STEP=...`` without internal spaces.
+The suggested card printed by Step 1 uses only the result basename; use the correct relative or absolute path
+when the two inputs are in different directories. ``STEP`` is a nonnegative integer selecting ``N`` in
+``Burnup/StepN/FETGammaSource``. Each \ **EXTERNALSOURCE** \ block accepts only one \ **FETGAMMASOURCE** \ card.
+This source is supported only in photon-only fixed-source mode and cannot be combined with ``SOURCE``,
+``SURFSRCREAD``, ``DISTRIBUTION``, ``H5SOURCEINFO``, or ``TRANSFORM`` cards.
+
+For compatibility with the previous workflow, an existing
+``RMC_FET_GAMMA_EXTERNAL_SOURCE_V1`` source-ready sidecar may still omit ``STEP``:
+
+.. code-block:: none
+
+    ExternalSource
+    FETGAMMASOURCE FILE=fet_gamma_source_ready.h5
+
+This FILE-only form is for legacy sidecars. New calculations should prefer ``Result.h5 + STEP`` to avoid an additional
+source-conversion step.
+
+The automatic workflow uses the same Python \ **R2S** \ controller. For this example, retain the neutron source and
+\ **BURNUP** \ module in the Step-1 input, add the following photon tally to its \ **Tally** \ module, and append the
+\ **R2S** \ control card:
+
+.. code-block:: none
+
+    Tally
+    CellTally 2 Type=1 Particle=2 Cell=4 Volume=26.4050862534
+        Energy=0.01 0.1 0.5 1 2 5 10 20 DoseRate=ICRP-119-ISO
+
+    R2S
+    Step = 2
+    Population = 1000000
+    Spectrum = fine
+    DoseTally = cell 2
+
+FET automation accepts only ``Spectrum = fine``. Omit source ``Energy`` boundaries from both \ **R2S** \ and
+\ **DECAYSOURCE** \ ; the dose tally still requires its own ``Energy`` bins. The selected cell/mesh tally retains
+``DOSERATE=ICRP-119-AP`` or ``DOSERATE=ICRP-119-ISO``, defaulting to AP when omitted.
+
+The controller reads ``FETGammaSource`` at the selected step, checks ``DirectTransportReady`` and the total source
+strength, and generates ``FETGAMMASOURCE FILE=... STEP=...``. RMC reads the spatial coefficients and absolute source
+strength directly, without scalar conversion or another decay-constant factor. Missing full-order sources or sources
+that are not ready for direct transport cause an error.
+
+The generated ``FILE`` is an absolute path to the result in ``archive/burnup/``. The Step-2 input remains runnable
+after it is archived under ``archive/r2s_photonN/``. Retain the referenced HDF5 file for independent runs. When moving
+the archive or transferring it to another machine, copy the source file as well and update ``FILE``. The photon stage
+continues to use the material composition from the Step-1 input.
 
 .. _section_eng_r2s_database:
 
@@ -207,7 +319,7 @@ Point-burnup \ **GAMMASPECTRUM** \  requires intensities that include lambda. Se
 .. important:: ``LibType`` selects intensity units, not a directory name or file format. Using ``LibType = 1`` with
    intensities that include lambda counts lambda twice.
 
-Photon transport in Step 2 requires photon (``.04p``) and electron (``.03e``) data for the material nuclides. Neutron
-activation in Step 1 uses neutron data such as ``.32c`` or ``.60c``. The two steps can share one ``xsdir`` file: photon
-transport maps neutron nuclide ids to the corresponding photon/electron element libraries automatically, for example
-``26056.32c`` to ``26000.04p``. The user does not need to rewrite materials separately for photon transport.
+Step 2 requires photon and accompanying electron data for the material elements. The library versions are selected
+from the matching entries in ``xsdir``; photon suffixes may be ``.04p`` or ``.80p``. Step 1 uses neutron data
+such as ``.32c``, ``.71c``, or ``.830c``. The two steps can share one ``xsdir``: photon transport matches the
+corresponding photon/electron element libraries automatically, without rewriting the material cards for Step 2.
