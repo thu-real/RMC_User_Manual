@@ -28,7 +28,7 @@ RMC包含四类计数器，分别是栅元计数器（cell tally）、网格计�
               [Dose=<dose>] [Gaussian=<gaussian>] [Value=<val_bin>] [Segment=<seg_bin>]
               [Flag=<flag_bin>] [Nest=<nest>] [ReactionRate=<params>]
               [Source=<source_bin>][Absolute=<val>] [Component = <params>] 
-              [Attribute=<attr>] [mt=<mt>]
+              [Attribute=<attr>] [mt=<mt>] [DoseRate=<library>]
 
 
 其中，
@@ -60,6 +60,11 @@ RMC包含四类计数器，分别是栅元计数器（cell tally）、网格计�
 
 -  **volume**\ 为栅元体积列表，为正数，和归并后的Cell数对应，Type=6时为质量得到的释热率
    量纲为MeV/g。
+
+-  **DoseRate**\ 选项卡指定剂量率转换系数，``ICRP-119-AP`` 为前后照射，``ICRP-119-ISO`` 为
+   各向同性照射，输出单位为 Sv/hr。仅用于设置了 ``Energy`` 分组的光子通量计数器
+   （``Type=1 Particle=2``）。未指定时不启用剂量率统计；R2S 自动流程会为 ``DoseTally`` 指定的
+   计数器保留已有选择，未设置时添加 AP。能群、体积和选项限制见 :ref:`section_r2s_dosetally`。
   
 -  **Multiplier**\ 为截面乘子，为整数，用于自定义乘数或反应截面，在使用Multiplier时计数
    类型Type必须设置为1，且不能使用Dose功能。
@@ -1101,7 +1106,7 @@ Reactionrate选项卡
                  [ScopeX/ScopeY/ScopeZ = <params>]
                  [BoundX/BoundY/BoundZ = <params>]
                  [mt = <mt>] [Component = <component>]
-                 [Attribute = <attribute>] [Dose=<dose>]
+                 [Attribute = <attribute>] [Dose=<dose>] [DoseRate=<library>]
 		 [MCNPFORMATOUTPUT = <param>]
 
 
@@ -1127,6 +1132,10 @@ Reactionrate选项卡
 -  **Normalize**\ 选项卡指定是否用网格体积进行归一化。
    **Normalize = 1**\ 表示使用网格体积进行归一化，
    **Normalize = 0**\ （缺省值）表示不使用。
+
+-  **DoseRate**\ 选项卡指定剂量率转换系数，可选 ``ICRP-119-AP`` 或 ``ICRP-119-ISO``，
+   输出单位为 Sv/hr。用于设置了 ``Energy`` 分组的光子通量计数器（``Type=1 Particle=2``），
+   缺省不启用。R2S 中的选择方式及网格体积、能群限制见 :ref:`section_r2s_dosetally`。
 
 -  **Component**\ 仅在Type=18时生效，即在统计裂变能量释放时，统计不同的裂变碎片的能量释放。其中，不同的裂变碎片
    用不同的Component编号区分，对应关系可参考表 :numref:`tally_component` 。
@@ -2022,4 +2031,3 @@ Hoogenboom全堆基准题大规模计数器
                Mat = 13 MT = -1 -2 -3 -6 16 17 102 103 107
 
 .. _1: https://doi.org/10.1155/2013/252140
- 

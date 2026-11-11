@@ -78,6 +78,12 @@ Burnup Module Input Card includes the following:
     Reactions <nuclide=nuc1 mts=mt_1 mt_2 ... mt_n
               nuclide=nuc2 mts=mt_1 mt_2 ... mt_n
               ...>
+    FETBURNUP <id> Type=1 Geometry=<0|1> Dimension=<1|2>
+              Bound=<bound_1 bound_2 ...> Legendre=<order_1 order_2 order_3>
+              [Cell=<cell>] [Axis=<1|2|3>]
+    FETDENPOINT <x_1 y_1 z_1 [x_2 y_2 z_2 ...]>
+    FETDENLINE Axis=<X|Y|Z> Num=<n> [X=<x>] [Y=<y>] [Z=<z>]
+    OUTPUTSTATE <flag>
     DecaySource  [Type=<flag>]  [Cell=<cell_1 cell_2 ... cell_n>]
                  [CustomBin=<flag>] [Energy= e_1 e_2 ... e_n] [LibType=<flag>]
                  [SecondSourceStartStep=<step_1 step_2 ... step_n>]    
@@ -492,10 +498,175 @@ the ``Burnup/StepN/GammaSource`` dataset in ``<inp>.Result.h5``. This decay phot
 for the second-step photon transport in R2S; see :ref:`section_eng_r2s`.
 
 
+.. _section_eng_burn_fet:
+
+FET Burnup
+--------------------
+
+\ **FETBURNUP** \ uses a functional expansion to represent the spatial distributions of reaction rates and nuclide
+inventories in a coarse burnup region. The depletion calculation retains all expansion coefficients. Transport
+materials are updated using the volume-averaged nuclide number density in each burnup region.
+
+In ``FETBURNUP <id>``, ``id`` must be a unique positive integer, and ``Type`` must be ``1``.
+``Geometry``, ``Dimension``, ``Bound``, and ``Legendre`` are required. ``Cell`` and ``Axis`` are required
+only for a local R-A field and are forbidden for a one-dimensional field.
+
+The following FET fields are supported:
+
+- A one-dimensional Legendre expansion along X, Y, or Z. Use ``Geometry = 0`` and ``Dimension = 1``, with only one
+  non-zero interval in ``Bound = xmin xmax ymin ymax zmin zmax``. In ``Legendre = n 0 0``, ``n`` is the order along
+  that direction.
+- A local bounded axisymmetric radial-axial (R-A) field. Use ``Geometry = 1``, ``Dimension = 2``,
+  ``Bound = rmax rmin x0 y0 z0 amax amin``, and ``Axis = 1|2|3`` to select the local X, Y, or Z axis.
+  ``Legendre = nr na 0`` gives the radial and axial orders. ``Cell`` selects the template base cell. Each full cell
+  path in a repeated lattice is expanded as an independent field, so multiple \ **FETBURNUP** \ cards can define a
+  multi-field model.
+
+For example, a second-order expansion along Z and a local expansion about the Z axis with second-order radial and
+axial terms can be specified as:
+
+.. code-block:: none
+
+    FETBURNUP 1 Type=1 Geometry=0 Dimension=1 Bound=0 0 0 0 0 10 Legendre=2 0 0
+    FETBURNUP 2 Type=1 Geometry=1 Dimension=2 Bound=0.41 0 0 0 0 50 0 Legendre=2 2 0 Cell=4 Axis=3
+
+A smooth FET field should not cross a clear material discontinuity. Each burnup region must be covered by exactly one
+\ **FETBURNUP** \ template.
+
+FET burnup requires ``Strategy Type=0`` (BOS), without ``Strategy Substep=1``. These strategy substeps are distinct
+from the internal depletion substeps selected by ``BURNUP Substep``. Use ``Solver=2`` (CRAM) or ``Solver=3``.
+Criticality FET burnup requires ``CoupleMode=1``. Fixed-source FET supports COMPLEX or SIMPLE, but decay photon
+source output requires SIMPLE. Xenon equilibrium, burnup sensitivity/uncertainty, TMS, decay activity/heat output,
+``SUCCESSION``, ``READNUC``, ``WRITENUC``, and ``SINGLESTEP`` are unsupported. Local R-A multi-field burnup also
+rejects ``MERGE``.
+
+The following cards control output views only and do not change the full-order burnup state:
+
+- ``FETDENPOINT x1 y1 z1 [x2 y2 z2 ...]`` reconstructs the nuclide density at specified points. It is supported
+  only when exactly one one-dimensional FET field is defined;
+- ``FETDENLINE Axis=Z Num=50 X=x0 Y=y0`` creates equally spaced midpoint samples along a one-dimensional field. It
+  is supported only when exactly one one-dimensional FET field is defined, must follow \ **FETBURNUP** \ , and
+  cannot be used together with \ **FETDENPOINT** \ . ``Axis`` and ``Num`` are required. ``Axis`` accepts X, Y, Z
+  (or 1, 2, 3) and must match the FET expansion direction; ``Num`` is a positive integer. The interval in ``Bound``
+  is divided into ``Num`` equal segments, with a sample at each midpoint. Coordinates in the other directions
+  are set by ``X``, ``Y``, and ``Z`` in cm, defaulting to 0;
+- ``OUTPUTSTATE <flag>`` controls complete inventory diagnostics. ``flag`` accepts 0 or 1 and defaults to 0 (off).
+  With ``flag=1``, nuclide inventories and average number densities for each burnup region are written to
+  ``<inp>.burn.den_state``, and all FET expansion coefficients are written to
+  ``Burnup/StepN/FETNuclideState``. These are read-only diagnostic outputs and cannot be used for restart.
+
+The reconstructions selected by \ **FETDENPOINT** \ and \ **FETDENLINE** \ are written to
+``<inp>.burn.den_fet``.
+
+In ``Burnup/StepN/FETNuclideState/<field>``, ``Step0`` is the initial inventory and ``StepN`` (N > 0) is the
+inventory at the end of time step N. Identify fields by their ``FullCellPath`` attribute rather than material ID.
+
+.. list-table:: Main full-order inventory fields
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Field
+     - Meaning
+   * - ``NuclideId``
+     - ZZZAAAm nuclide code; for example, Co60 is 270600.
+   * - ``ModeOrders`` and attribute ``ModeCount``
+     - Basis orders and mode count; use the ordering stored in the file.
+   * - ``CoefficientInventory1E24Atoms``
+     - Inventory coefficients in 10^24 atoms, with nuclide as the outer index and mode as the inner index. The zero-order term is the total nuclide inventory in the region.
+   * - ``OrderZeroDensityAtomPerBarnCm``
+     - Region-average nuclide number density, obtained by dividing the zero-order inventory coefficient by ``VolumeCm3``, in atom/(barn cm).
+
+Only nonzero nuclide inventories are written. Align different steps by ``NuclideId``, not row position. Higher-mode
+coefficients may be negative; local density is obtained by reconstructing the complete polynomial.
+
+\ **DECAYSOURCE** \ is off when the card is absent. For FET burnup, enabling it also writes the full-order decay
+photon source to ``Burnup/StepN/FETGammaSource``. This feature is limited to fixed-source ``SOURCERATE`` activation
+with ``COUPLEMODE 2`` (SIMPLE). At least one source-bearing burnup cell must be selected with ``CELL`` on the
+\ **DECAYSOURCE** \ card. If the result will be consumed directly by \ **FETGAMMASOURCE** \ in Step-2 photon
+transport, retain the discrete photon lines by omitting ``ENERGY`` and either omitting ``CUSTOMBIN`` or setting it to
+``0``. Direct transport requires second-order radial and first-order axial expansions (R2-A1). All source-bearing
+regions must share one axis and origin, not overlap in R-A source space, and use local coordinates equal to global
+coordinates. When loading the source, higher-order coefficients are uniformly scaled as needed to keep the source
+density nonnegative, preserving each line's volume-integrated intensity and the total source strength.
+
+For example, cell 4 is a cylindrical activation region of radius 0.41 cm extending from z=0 to 50 cm.
+It is irradiated for 0.1 d and then cooled for 10 d. Its burnup input, used with the fixed-source modules, is:
+
+.. code-block:: none
+
+    BURNUP
+    ActivationCell 4
+    TimeStep 0.1 10
+    SourceRate 1e10 0
+    CoupleMode 2
+    FETBURNUP 1 Type=1 Geometry=1 Dimension=2 Bound=0.41 0 0 0 0 50 0 Legendre=2 1 0 Cell=4 Axis=3
+    DecaySource Type=1 Cell=4 LibType=0
+    Substep 1
+    Strategy Type=0
+    Solver 2
+
+This example produces a directly transportable R2-A1 source and assumes library intensities already include lambda.
+Use ``LibType=1`` instead when the actual library stores photons per decay.
+
+The sources at the end of irradiation and cooling are written to ``Step1`` and ``Step2``, respectively.
+See :ref:`section_eng_r2s_fet_source` for the photon input and automatic control card using the cooled source.
+
+.. important:: FET burnup does not support restart/continuation or general three-dimensional FET bases.
+
+
 .. _section_eng_burn_example:
 
 Burnup Module Input Example
 ---------------------------
+
+One-Dimensional FET Criticality Burnup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Cell 3 is the only burnup region, with a second-order Legendre expansion along Z from 0 to 50 cm.
+Two 0.1 d steps use a power density of 30 W/gHM. Define geometry, materials, and the \ **CRITICALITY** \ module
+as described above, and use the following burnup block:
+
+.. code-block:: none
+
+    BURNUP
+    BurnCell 3
+    TimeStep 0.1 0.1
+    PowerDen 30 30
+    CoupleMode 1
+    FETBURNUP 1 Type=1 Geometry=0 Dimension=1 Bound=0 0 0 0 0 50 Legendre=2 0 0
+    FETDENLINE Axis=Z Num=5 X=0.63 Y=0.63
+    OutputState 1
+    Substep 1
+    Strategy Type=0
+    Solver 2
+
+``FETDENLINE`` outputs densities at x=y=0.63 cm and z=5, 15, 25, 35, and 45 cm. The sample line should lie inside
+the burnup region. ``OutputState`` outputs each region's nuclide inventories, average number densities, and all
+expansion coefficients; transport at the next step uses the region-average nuclide number densities.
+
+One-Dimensional FET Fixed-Source Activation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Cell 1 is the only activation region, with a second-order Legendre expansion along Z from 0 to 10 cm.
+Define the neutron source with the \ **FixedSource** \ and \ **ExternalSource** \ modules and use:
+
+.. code-block:: none
+
+    BURNUP
+    ActivationCell 1
+    TimeStep 0.1 0.1
+    SourceRate 3e15 3e15
+    CoupleMode 2
+    FETBURNUP 1 Type=1 Geometry=0 Dimension=1 Bound=0 0 0 0 0 10 Legendre=2 0 0
+    FETDENLINE Axis=Z Num=5 X=0.5 Y=0.5
+    OutputState 1
+    Substep 1
+    Strategy Type=0
+    Solver 2
+
+Both activation steps use a source strength of 3×10\ :sup:`15` n/s. ``CoupleMode 2`` selects SIMPLE coupling.
+Use ``CoupleMode 1`` to update the material and repeat transport at each step. Decay photon source output
+requires SIMPLE coupling and the \ **DecaySource** \ card described above.
 
 PWR Pin Cell Burnup Calculation Example
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -946,4 +1117,3 @@ input cards that need to be added are as follows:
     Parallel    1
     Solver      2
     MERGE       level = 2 univ = 5
-

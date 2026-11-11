@@ -22,6 +22,10 @@ of the area of interest to the user.
 Source Description Module Input Option
 --------------------------------------
 
+Full-order decay photon sources from FET activation use the separate ``FETGAMMASOURCE FILE=... STEP=...`` card
+for photon-only fixed-source transport. See :ref:`section_eng_r2s_fet_source` for its syntax, supported fields, and
+mutual exclusions with ordinary source cards. The following options describe ordinary sources.
+
 .. code-block:: none
 
      EXTERNALSOURCE

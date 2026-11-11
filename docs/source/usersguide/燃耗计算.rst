@@ -76,6 +76,12 @@ ORIGEN-2的最新点燃耗数据库。
     Reactions <nuclide=nuc1 mts=mt_1 mt_2 ... mt_n
               nuclide=nuc2 mts=mt_1 mt_2 ... mt_n
               ...>
+    FETBURNUP <id> Type=1 Geometry=<0|1> Dimension=<1|2>
+              Bound=<bound_1 bound_2 ...> Legendre=<order_1 order_2 order_3>
+              [Cell=<cell>] [Axis=<1|2|3>]
+    FETDENPOINT <x_1 y_1 z_1 [x_2 y_2 z_2 ...]>
+    FETDENLINE Axis=<X|Y|Z> Num=<n> [X=<x>] [Y=<y>] [Z=<z>]
+    OUTPUTSTATE <flag>
     DecaySource  [Type=<flag>]  [Cell=<cell_1 cell_2 ... cell_n>]
                  [CustomBin=<flag>] [Energy= e_1 e_2 ... e_n] [LibType=<flag>]
                  [SecondSourceStartStep=<step_1 step_2 ... step_n>]    
@@ -487,10 +493,163 @@ RMC燃耗计算时间项支持燃耗深度步长、时间步长输入，功率�
 其自动化流程见 :ref:`section_r2s` 。
 
 
+.. _section_burn_fet:
+
+FET 燃耗
+----------------------
+
+\ **FETBURNUP**\ 使用函数展开表示一个粗燃耗区内的反应率和核素库存空间分布。燃耗计算保留各阶
+展开系数；更新输运材料时，使用该燃耗区的体积平均核素数密度。
+
+``FETBURNUP <id>`` 中的 ``id`` 必须是唯一正整数，``Type`` 必须设为 ``1``。
+``Geometry``、``Dimension``、``Bound`` 和 ``Legendre`` 均为必填项。``Cell`` 和 ``Axis`` 仅在局部
+R-A 场中必填，一维场禁止使用这两个选项。
+
+当前支持以下 FET 场：
+
+- 沿 X、Y 或 Z 方向的一维 Legendre 展开。使用 ``Geometry = 0``、``Dimension = 1``，并在
+  ``Bound = xmin xmax ymin ymax zmin zmax`` 中只给一个方向非零长度；``Legendre = n 0 0`` 中的
+  ``n`` 为该方向的阶数。
+- 局部有界轴对称径向-轴向（R-A）场。使用 ``Geometry = 1``、``Dimension = 2``，
+  ``Bound = rmax rmin x0 y0 z0 amax amin``，并用 ``Axis = 1|2|3`` 选择局部轴向 X、Y 或 Z。
+  ``Legendre = nr na 0`` 分别给出径向和轴向阶数。``Cell`` 选择模板的基础栅元；重复格架中的每个完整
+  cell path 会展开为独立 field，因此可用多张 \ **FETBURNUP**\ 卡定义 multi-field 模型。
+
+例如，Z 方向二阶展开，以及以 Z 为轴、径向和轴向均为二阶的展开，可分别写为：
+
+.. code-block:: none
+
+    FETBURNUP 1 Type=1 Geometry=0 Dimension=1 Bound=0 0 0 0 0 10 Legendre=2 0 0
+    FETBURNUP 2 Type=1 Geometry=1 Dimension=2 Bound=0.41 0 0 0 0 50 0 Legendre=2 2 0 Cell=4 Axis=3
+
+一个平滑 FET 场不应跨越明显的材料不连续面；每个燃耗区必须且只能由一张 \ **FETBURNUP**\ 模板覆盖。
+
+FET 燃耗使用 ``Strategy Type=0``（BOS），不支持 ``Strategy Substep=1``。这里的策略子步与
+``BURNUP Substep`` 指定的点燃耗内部子步不同。求解器可选 ``Solver=2``（CRAM）或 ``Solver=3``。
+临界 FET 燃耗必须使用 ``CoupleMode=1``；固定源可使用 COMPLEX 或 SIMPLE，但输出衰变光子源时
+必须使用 SIMPLE。当前不支持平衡氙、燃耗敏感性/不确定度、TMS、衰变活度/衰变热输出，以及
+``SUCCESSION``、``READNUC``、``WRITENUC``、``SINGLESTEP``；局部 R-A multi-field 不支持 ``MERGE``。
+
+以下卡片只控制输出视图，不改变全阶燃耗状态：
+
+- ``FETDENPOINT x1 y1 z1 [x2 y2 z2 ...]`` 在指定点重构核素密度，仅支持恰好定义了一个一维
+  FET field 的情况；
+- ``FETDENLINE Axis=Z Num=50 X=x0 Y=y0`` 在一维 field 上生成等距中心采样点。该卡必须写在
+  \ **FETBURNUP**\ 之后，仅支持恰好定义了一个一维 FET field 的情况，并且不能与
+  \ **FETDENPOINT**\ 同时使用。``Axis`` 和 ``Num`` 必填，``Axis`` 可取 X、Y、Z（或 1、2、3），
+  必须与 FET 展开方向一致；``Num`` 为正整数。程序将 ``Bound`` 给出的区间等分为 ``Num`` 段，
+  在各段中心输出密度。其余方向的坐标由 ``X``、``Y``、``Z`` 给出，单位为 cm，缺省为 0；
+- ``OUTPUTSTATE <flag>`` 控制完整库存诊断输出，``flag`` 取 0 或 1，缺省为 0（关闭）。设为 1 时，
+  各燃耗区的核素库存及平均数密度写入 ``<inp>.burn.den_state``，FET 各阶展开系数写入
+  ``Burnup/StepN/FETNuclideState``。这些文件是诊断输出，不能用于接续计算。
+
+\ **FETDENPOINT**\ 和 \ **FETDENLINE**\ 的重构结果均写入 ``<inp>.burn.den_fet``。
+
+在 ``Burnup/StepN/FETNuclideState/<field>`` 中，``Step0`` 是初始库存，``StepN``（N > 0）是
+第 N 个时间步结束的库存。各 field 通过属性 ``FullCellPath`` 识别，不能仅按材料编号合并。
+
+.. list-table:: 全阶库存的主要字段
+   :header-rows: 1
+   :widths: 45 55
+
+   * - 字段
+     - 含义
+   * - ``NuclideId``
+     - 核素编码 ZZZAAAm，例如 Co60 为 270600。
+   * - ``ModeOrders``、属性 ``ModeCount``
+     - 基函数阶数组合及模态数；按文件记录的顺序读取。
+   * - ``CoefficientInventory1E24Atoms``
+     - 库存系数，单位为 10^24 个原子；核素为外层索引，模态为内层索引。零阶项为该区的核素总库存。
+   * - ``OrderZeroDensityAtomPerBarnCm``
+     - 区平均核素数密度，由该核素的零阶库存系数除以 ``VolumeCm3`` 得到，单位为 atom/(barn·cm)。
+
+只输出非零库存核素，读取时以 ``NuclideId`` 对齐，不按不同步之间的行号对齐。高阶系数可以为负；
+点密度由全部系数按基函数重构得到。
+
+\ **DECAYSOURCE**\ 在未写入时默认关闭。对 FET 燃耗，开启后还会将全阶衰变光子源写入
+``Burnup/StepN/FETGammaSource``。该功能仅支持固定源 ``SOURCERATE`` 活化和
+``COUPLEMODE 2``（SIMPLE），并且必须通过 \ **DECAYSOURCE**\ 的 ``CELL`` 选项至少指定一个有源燃耗 cell。
+若该结果需要由 \ **FETGAMMASOURCE**\ 直接用于第二步光子输运，必须保留
+离散谱线，即不要设置 ``ENERGY``，并省略 ``CUSTOMBIN`` 或将其设为 ``0``。直接输运要求有源区域
+采用径向二阶、轴向一阶展开（R2-A1），共享同一轴和原点、在 R-A 源空间中不重叠，并使用与全局坐标
+一致的局部坐标。读取时按需统一缩放高阶系数，使源密度非负，同时保持各谱线的体积积分源强及总源强不变。
+
+例如，栅元 4 为半径 0.41 cm、轴向范围 0～50 cm 的圆柱活化区，照射 0.1 d 后冷却 10 d。
+与固定源模块配合使用的燃耗输入为：
+
+.. code-block:: none
+
+    BURNUP
+    ActivationCell 4
+    TimeStep 0.1 10
+    SourceRate 1e10 0
+    CoupleMode 2
+    FETBURNUP 1 Type=1 Geometry=1 Dimension=2 Bound=0.41 0 0 0 0 50 0 Legendre=2 1 0 Cell=4 Axis=3
+    DecaySource Type=1 Cell=4 LibType=0
+    Substep 1
+    Strategy Type=0
+    Solver 2
+
+上例为可直接输运的 R2-A1 源，使用强度已含 λ 的谱库；若实际谱库为光子/衰变，则改用 ``LibType=1``。
+
+照射结束和冷却结束的源分别写入 ``Step1`` 和 ``Step2``。采用冷却结束源的第二步输入及自动计算
+控制卡见 :ref:`section_r2s_fet_source`。
+
+.. important:: FET 燃耗不支持接续计算和通用三维 FET 基函数。
+
+
 .. _section_burn_example:
 
 燃耗模块输入示例
 --------------------
+
+一维 FET 临界燃耗
+~~~~~~~~~~~~~~~~~~~~~
+
+以下示例以栅元 3 为唯一燃耗区，沿 Z 方向在 0～50 cm 内采用二阶 Legendre 展开，
+进行两个 0.1 d 的燃耗步，功率密度均为 30 W/gHM。几何、材料和 \ **CRITICALITY**\ 模块按前述格式
+设置，燃耗模块如下：
+
+.. code-block:: none
+
+    BURNUP
+    BurnCell 3
+    TimeStep 0.1 0.1
+    PowerDen 30 30
+    CoupleMode 1
+    FETBURNUP 1 Type=1 Geometry=0 Dimension=1 Bound=0 0 0 0 0 50 Legendre=2 0 0
+    FETDENLINE Axis=Z Num=5 X=0.63 Y=0.63
+    OutputState 1
+    Substep 1
+    Strategy Type=0
+    Solver 2
+
+``FETDENLINE`` 在 x=y=0.63 cm、z=5、15、25、35、45 cm 处输出密度，采样线应位于燃耗区内。
+``OutputState`` 输出各燃耗区的核素库存、平均数密度和各阶展开系数；下一步输运使用区平均核素数密度。
+
+一维 FET 固定源活化
+~~~~~~~~~~~~~~~~~~~~~
+
+以下示例以栅元 1 为唯一活化区，沿 Z 方向在 0～10 cm 内采用二阶 Legendre 展开。
+中子源由 \ **FixedSource**\ 和 \ **ExternalSource**\ 模块定义，活化模块为：
+
+.. code-block:: none
+
+    BURNUP
+    ActivationCell 1
+    TimeStep 0.1 0.1
+    SourceRate 3e15 3e15
+    CoupleMode 2
+    FETBURNUP 1 Type=1 Geometry=0 Dimension=1 Bound=0 0 0 0 0 10 Legendre=2 0 0
+    FETDENLINE Axis=Z Num=5 X=0.5 Y=0.5
+    OutputState 1
+    Substep 1
+    Strategy Type=0
+    Solver 2
+
+两个活化步的源强均为 3×10\ :sup:`15` n/s。``CoupleMode 2`` 使用 SIMPLE 耦合；若需每步更新
+材料并重新输运，可改为 ``CoupleMode 1``。输出衰变光子源时须使用前述 SIMPLE 输入及
+\ **DecaySource**\ 卡。
 
 PWR栅元燃耗算例
 ~~~~~~~~~~~~~~~~~~~~~
@@ -947,4 +1106,3 @@ cm。燃料组件为17×17结构，含264根燃料棒和25个水通道。根据U
     Parallel    1
     Solver      2
     MERGE       level = 2 univ = 5
-

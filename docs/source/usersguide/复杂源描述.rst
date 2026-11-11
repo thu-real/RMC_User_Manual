@@ -17,6 +17,10 @@ RMC支持用户对源粒子的信息如粒子种类、初始位置、初始能�
 源描述模块输入卡
 -------------------------
 
+FET 活化产生的全阶衰变光子源使用独立的 ``FETGAMMASOURCE FILE=... STEP=...`` 卡读取，
+用于仅光子固定源输运。输入格式、支持范围及与普通源卡的互斥要求见 :ref:`section_r2s_fet_source`。
+以下选项描述普通源。
+
 .. code-block:: none
 
      EXTERNALSOURCE

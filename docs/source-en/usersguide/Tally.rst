@@ -27,7 +27,7 @@ The input card for a cell tally is as follows:
               [Dose=<dose>] [Gaussian=<gaussian>] [Value=<val_bin>] [Segment=<seg_bin>]
               [Flag=<flag_bin>] [Nest=<nest>] [ReactionRate=<params>]
               [Source=<source_bin>][Absolute=<val>] [Component = <params>] 
-              [Attribute=<attr>] [mt=<mt>]
+              [Attribute=<attr>] [mt=<mt>] [DoseRate=<library>]
 
 
 Where:
@@ -58,6 +58,12 @@ Where:
 -  **particle** \  designates the particle type for the cell tally: 1 for neutrons, 2 for photons, and 3 for electrons.
 
 -  **volume** \  specifies the cell volume list as a positive number, corresponding to the merged cell tally; Type=6 indicates mass-based power density in MeV/g.
+
+-  **DoseRate** \ selects dose-rate conversion coefficients: ``ICRP-119-AP`` for antero-posterior irradiation or
+   ``ICRP-119-ISO`` for isotropic irradiation. Results are in Sv/hr. This option requires a photon flux tally
+   (``Type=1 Particle=2``) with ``Energy`` bins. Dose-rate scoring is disabled when omitted; R2S preserves the choice
+   on the tally selected by ``DoseTally`` and adds AP if no choice is specified. See :ref:`section_eng_r2s_dosetally`
+   for energy, volume, and option restrictions.
   
 -  **Multiplier** \  serves as a cross-section multiplier, an integer used for custom multipliers or reaction cross-sections. When using Multiplier, 
    the tally type Type must be set to 1, and Dose functionality cannot be used.
@@ -1132,7 +1138,7 @@ The input card for Mesh Tally is as follows:
                  [ScopeX/ScopeY/ScopeZ = <params>]
                  [BoundX/BoundY/BoundZ = <params>]
                  [mt = <mt>] [Component = <component>]
-                 [Attribute = <attribute>] [Dose=<dose>]
+                 [Attribute = <attribute>] [Dose=<dose>] [DoseRate=<library>]
                  [MCNPFORMATOUTPUT = <param>]
 
 Where,
@@ -1153,6 +1159,10 @@ Where,
 
 -  **Normalize** \  card specifies whether to normalize by the mesh volume. **Normalize = 1** \  means normalization by the mesh volume, while 
    **Normalize = 0** \  (default) means no normalization.
+
+-  **DoseRate** \ selects ``ICRP-119-AP`` or ``ICRP-119-ISO`` dose-rate conversion coefficients, with output in Sv/hr.
+   It requires a photon flux tally (``Type=1 Particle=2``) with ``Energy`` bins and is disabled by default.
+   See :ref:`section_eng_r2s_dosetally` for R2S selection and mesh-volume and energy-bin restrictions.
 
 -  **Component**\  option is only effective when Type=18, which is used to tally the energy release from different fission fragments while accounting 
    for their distinct contributions. Different fission fragments are distinguished by different Component numbers, and the corresponding relationships can be 

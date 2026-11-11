@@ -22,6 +22,10 @@ R2S（Rigorous Two-Step，严格两步法）用于计算停堆后的光子剂量
 用户只需准备 **一张** 第一步（活化）输入卡，并在其中加入 :ref:`R2S 控制卡 <section_r2s_card>` ；
 第二步的光子输运输入卡由程序自动生成、自动运行，无需手动整理衰变源。
 
+Python 自动流程支持传统的 ``Burnup/StepN/GammaSource`` 标量源，也支持直接读取
+``Burnup/StepN/FETGammaSource`` 全阶源。FET 源保留粗区内的空间模态，分步和自动计算的用法见
+:ref:`section_r2s_fet_source`。
+
 .. _section_r2s_step1_input:
 
 第一步输入卡要求
@@ -89,17 +93,21 @@ RMC 主程序的输入卡。
 
 各选项说明：
 
--  **Step**\ ：取用第几个燃耗/活化步的衰变光子源作为第二步光子源。缺省为最后一个活化步。
+-  **Step**\ ：取用第几个燃耗/活化步的衰变光子源作为第二步光子源。取值为非负整数，不得超过
+   输入的照射与衰变步数；所选步须有可用的衰变光子源。缺省取最后一步，包含末尾的冷却步。
 
--  **Population**\ ：第二步光子输运的粒子数。缺省取第一步 \ **FixedSource**\ 的 ``population``。
+-  **Population**\ ：第二步光子输运的粒子数，须为至少 101 的整数。
+   缺省取第一步 \ **FixedSource**\ 的 ``population``。
 
 -  **Spectrum**\ ：第二步光子源的能谱形式。
 
-   - ``fine``\ （缺省）：使用逐条谱线的精细光子源（Distribution ``type = 1``）；
-   - ``bin``\ ：将光子源按 \ **Energy**\ 给定的能量边界分箱（Distribution ``type = 4``），此时必须给出
-     \ **Energy**\ 选项。
+   - ``fine``\ （缺省）：使用逐条谱线。标量源生成 Distribution ``type = 1``；FET 全阶源通过
+     ``FETGAMMASOURCE`` 直接读取；
+   - ``bin``\ ：仅用于标量源，按 \ **Energy**\ 给定的能量边界分箱（Distribution ``type = 4``），
+     此时必须给出 \ **Energy**\ 选项。FET 自动计算只支持 ``fine``。
 
--  **Energy**\ ：当 ``Spectrum = bin`` 时给出分箱的能量边界（单位 MeV，递增数列）。
+-  **Energy**\ ：当 ``Spectrum = bin`` 时给出分箱的能量边界，单位为 MeV，至少两个值，
+   须为有限、非负且严格递增的数列。FET 自动计算不设置此项。
 
 -  **DoseTally**\ ：指定最终用于剂量率计算的计数器，格式为 ``DoseTally = <类型> <编号>`` ，其中类型
    为 ``cell`` 或 ``mesh`` ，编号为对应计数器的 id。见下文 :ref:`section_r2s_dosetally` 。
@@ -170,11 +178,105 @@ R2S 计算通过 RMC 的 Python 模块运行（与普通燃耗计算的运行方
 模块后会自动依次完成两步：
 
 - 第一步（活化）的结果归档在 ``archive/burnup/`` 下，衰变光子源位于 ``<inp>.burnup.Result.h5`` 的
-  ``Burnup/StepN/GammaSource``；
+  ``Burnup/StepN/GammaSource``，FET 全阶源位于 ``Burnup/StepN/FETGammaSource``；
 - 第二步（光子输运）的结果归档在 ``archive/r2s_photonN/`` 下（``N`` 为所取的活化步），剂量率位于其中
   的 ``.Tally`` 文件；
 - 运行日志中会打印该步的衰变光子源总强度，例如
   ``R2S: total decay photon source strength at Step4 = 2.614183E+08``。
+
+
+.. _section_r2s_fet_source:
+
+FET 全阶衰变光子源
+--------------------------
+
+FET 燃耗的 \ **DECAYSOURCE**\ 默认关闭；只有在第一步 \ **BURNUP**\ 模块中显式写入该卡时，程序才会将
+全阶 FET 衰变光子源输出到 ``<inp>.Result.h5`` 的 ``Burnup/StepN/FETGammaSource``。当前支持范围为固定源
+``SOURCERATE`` 活化、``COUPLEMODE 2``（SIMPLE）和离散光子谱线。用于直接输运时不要在
+\ **DECAYSOURCE**\ 中设置 ``ENERGY``，``CUSTOMBIN`` 应省略或设为 ``0``。当前直接采样器支持局部有界
+多区域源，各区域采用径向二阶、轴向一阶展开（R2-A1）；所有有源区域必须使用相同的轴和原点、
+在 R-A 源空间中不重叠，且局部坐标必须与全局坐标一致。无变换的嵌套 universe 可以使用；含平移、
+旋转或 lattice 实例的场不支持直接输运。
+其它受支持阶数仍可输出全阶衰变源，但不能由该接口直接输运。
+
+第二步按全阶 FET 源密度采样 ``r^2`` 和轴向位置，方位角均匀，出射方向各向同性。为保证源密度非负，
+读取时会逐能量线按需统一缩放高阶系数，保持各谱线的体积积分源强及总源强不变。
+
+``Burnup/StepN/FETGammaSource/<field>`` 的 ``EnergyMeV`` 为谱线能量；
+``CoefficientPhotonsPerSecond`` 按“能量在外、模态在内”排列，单位为 photon/s。
+``ModeOrders`` 给出模态顺序，R2-A1 为 (0,0)、(0,1)、(1,0)、(1,1)、(2,0)、(2,1)。
+每条谱线的零阶系数表示该区域在此能量下的总光子发射率，与 ``VolumeIntegratedPhotonsPerSecond`` 中
+对应的数值相等。局部源密度由全部模态重构后除以 ``VolumeCm3``，单位为 photon/(s·cm³)。
+每区总源强存于 ``TotalVolumeIntegratedPhotonsPerSecond``，所有区域的合计存于集合属性
+``TotalPhotonsPerSecond``。无谱线的 field 保留 ``EnergyCount=0`` 和零总源强，不写能量及谱系数数组。
+``DirectTransportReady=1`` 表示该步源满足直接输运接口要求。
+
+以下接续 :ref:`section_burn_fet` 中栅元 4 照射 0.1 d、冷却 10 d 的示例，选取冷却结束的 ``Step2``。
+假定第一步输入文件名为 ``activation``，两步输入位于同一目录。
+第二步保留相同的几何和材料，移除 \ **BURNUP**\ 模块，并采用以下光子输运、外源及计数器输入：
+
+.. code-block:: none
+
+    FixedSource
+    Particle population = 1000000
+
+    ExternalSource
+    FETGAMMASOURCE FILE=activation.Result.h5 STEP=2
+
+    Physics
+    ParticleMode P
+    Photon PPRODUCEE=1 TTB=1
+
+    Tally
+    CellTally 2 Type=1 Particle=2 Cell=4 Volume=26.4050862534
+        Energy=0.01 0.1 0.5 1 2 5 10 20 DoseRate=ICRP-119-ISO
+
+栅元 4 的半径为 0.41 cm、高为 50 cm，体积为 26.4050862534 cm\ :sup:`3`。
+``CellTally 2`` 统计该栅元内的光子通量，并采用 ISO 系数输出剂量率；选择 AP 时将
+``DoseRate`` 改为 ``ICRP-119-AP``。
+
+``FILE`` 指向第一步的 ``Result.h5``，路径不能包含空白字符；相对路径以第二步输入卡所在目录为基准。
+``FILE=...`` 和 ``STEP=...`` 内部不加空格。程序输出的建议卡只使用
+Result 文件名；若两步不在同一目录，应改成正确的相对或绝对路径。``STEP`` 为非负整数，选择
+``Burnup/StepN/FETGammaSource`` 中的 ``N``。每个 \ **EXTERNALSOURCE**\ 模块只能定义一张
+\ **FETGAMMASOURCE**\ 卡，且只能用于仅光子固定源计算；不能与 ``SOURCE``、``SURFSRCREAD``、
+``DISTRIBUTION``、``H5SOURCEINFO`` 或 ``TRANSFORM`` 混用。
+
+为兼容旧流程，已生成的 ``RMC_FET_GAMMA_EXTERNAL_SOURCE_V1`` source-ready sidecar 仍可省略 ``STEP``：
+
+.. code-block:: none
+
+    ExternalSource
+    FETGAMMASOURCE FILE=fet_gamma_source_ready.h5
+
+此 FILE-only 形式只用于旧 sidecar；新的计算应优先使用 ``Result.h5 + STEP``，避免额外的源转换步骤。
+
+自动计算沿用相同的 Python \ **R2S**\ 控制模块。采用同一示例时，在第一步输入中保留中子源及
+\ **BURNUP**\ 模块，将下面的光子计数器加入 \ **Tally**\ 模块，并添加 \ **R2S**\ 控制卡：
+
+.. code-block:: none
+
+    Tally
+    CellTally 2 Type=1 Particle=2 Cell=4 Volume=26.4050862534
+        Energy=0.01 0.1 0.5 1 2 5 10 20 DoseRate=ICRP-119-ISO
+
+    R2S
+    Step = 2
+    Population = 1000000
+    Spectrum = fine
+    DoseTally = cell 2
+
+FET 自动流程仅支持 ``Spectrum = fine``，不要在 \ **R2S**\ 或 \ **DECAYSOURCE**\ 中设置源能群
+``Energy``；剂量计数器自身的 ``Energy`` 能群仍需给出。选定的 cell/mesh 计数器沿用
+``DOSERATE=ICRP-119-AP`` 或 ``DOSERATE=ICRP-119-ISO`` 设置，未指定时默认 AP。
+
+控制模块读取所选步的 ``FETGammaSource``，检查 ``DirectTransportReady`` 和总源强，自动生成
+``FETGAMMASOURCE FILE=... STEP=...``。空间系数及源强归一化由 RMC 直接读取，不转为标量源，也不重复乘
+衰变常数。缺少全阶源或不满足直接输运条件时停止并报错。
+
+自动生成的 ``FILE`` 使用 ``archive/burnup/`` 中结果文件的绝对路径，因此第二步输入归档至
+``archive/r2s_photonN/`` 后仍可单独运行。独立运行需保留该 HDF5 文件；若移动归档或复制到其他机器，应
+一并复制源文件并更新 ``FILE``。光子阶段继续采用第一步输入中的材料组成。
 
 .. _section_r2s_database:
 
@@ -195,6 +297,7 @@ R2S 计算通过 RMC 的 Python 模块运行（与普通燃耗计算的运行方
 
 .. important:: ``LibType`` 指定强度单位，不能由目录名判断。对已含 λ 的谱使用 ``LibType = 1`` 会重复乘 λ。
 
-光子输运（第二步）需要材料中各核素的光子（``.04p``）与电子（``.03e``）数据；中子活化（第一步）使用
-中子数据（如 ``.32c``/``.60c``）。两步可共用同一份 ``xsdir``：光子输运会按元素自动将中子核素 ID 映射到
-对应的光子/电子库（如 ``26056.32c`` → ``26000.04p``），无需为光子输运单独改写材料。
+光子输运（第二步）需要材料元素的光子及配套电子数据。库版本由 ``xsdir`` 中匹配的条目决定，
+例如光子库可以使用 ``.04p`` 或 ``.80p``。
+中子活化（第一步）使用中子数据（如 ``.32c``、``.71c`` 或 ``.830c``）。两步可共用同一份 ``xsdir``：
+光子输运会按元素匹配相应光子/电子库，无需为光子输运单独改写材料。
