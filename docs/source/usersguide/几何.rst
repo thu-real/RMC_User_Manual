@@ -1190,6 +1190,180 @@ DEM 可以与 ODR 常规耦合，也可以采用迭代 ODR-DEM 方法 (ITERODRDE
     mpiexec -n [并行核数] ./RMC [其他部分输入卡名]
 
 
+基于非结构网格(UM)的粒子输运（仅限企业版本）
+--------------------------------------------------
+
+RMC支持基于非结构网格(Unstructured Mesh, UM)几何进行粒子输运与计数统计。当前版本仅支持中子，支持临界计算、固定源计算和绘图功能。
+使用此功能需要单独安装libMesh，
+并通过CAD/CAE软件建立几何模型、划分网格并导出非结构网格文件。UM几何输运功能的使用流程如下：
+
+
+安装libMesh库
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+libMesh代码官方网址：`https://github.com/libMesh/libmesh <https://github.com/libMesh/libmesh>`_。
+
+用户可按照libMesh官方Build Instructions安装，建议配置 ``--with-methods="opt"`` 。libMesh版本需为 1.7.1或更高版本。
+
+在编译libMesh之前，需要将源代码 ``include/base/libmesh_common.h`` 中的 ``TOLERANCE`` 修改为 ``1e-12`` ，之后按照官方教程完成安装。
+
+
+准备非结构网格文件
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+用户可使用CAD软件（如 SpaceClaim、SolidWorks 等）建立几何模型，并导出 ``.stp`` 等通用格式的CAD文件；随后将CAD文件导入CAE软件
+（如 Cubit、Gmsh 等）进行网格划分。下面以 Cubit 为例说明建模和网格划分流程。
+
+建立几何模型，Cubit命令如下：
+
+.. code-block:: none
+
+    create cylinder height 20 radius 0.5
+    create cylinder height 20 radius 0.6
+    brick x 1.5 y 1.5 z 20
+    subtract volume 2 from volume 3 keep_tool
+    subtract volume 1 from volume 2 keep_tool
+    imprint volume all
+    merge volume all
+    compress all
+
+以上命令创建了一个高度为20 cm、截面尺寸为1.5 cm × 1.5 cm的单棒几何模型，包含3个volume，分别对应燃料、包壳和冷却剂区域。
+
+划分网格，Cubit 命令如下：
+
+.. code-block:: none
+
+    surface 3 9 12 scheme auto
+    surface 3 9 12 size 0.03
+    mesh surface 3 9 12
+    volume all interval 40
+    mesh volume all
+
+以上命令对3个底面划分表面网格，并沿轴向扫掠40层生成体网格。RMC支持常见的四面体、五面体和六面体网格类型。
+
+.. admonition:: 备注
+
+   使用 UM 表述蒙卡模型时，用户只需建立自己关注的几何体，并对这些几何体进行网格划分。几何体之间不要求空间上相邻，
+   不同几何体可以采用不同的网格类型，相邻几何体交界处的网格元节点也可以不匹配。
+   即使相邻几何体在划分网格后，网格之间存在重叠或间隙，程序也具备处理这些情况的能力。
+
+   但建议用户结合自己的实际模型和所选取的网格划分工具的能力，尽量合理地使用类似于 Cubit 中的 ``imprint``、``merge`` 等操作，
+   使相邻几何体交界处的网格节点匹配，这可以加速计算。
+
+   另外，RMC目前仅支持三维网格模型的计算，若用户模拟二维模型，可考虑拉伸成三维，并设置全反射边界条件。
+
+为每个体赋予区块(block)编号：
+
+.. code-block:: none
+
+    block 1 add vol 1       // 为volume 1赋予block编号1
+    block 2 add vol 2       // 为volume 2赋予block编号2
+    block 3 add vol 3       // 为volume 3赋予block编号3
+    block 1 name "fuel"     // 可选：为block命名，便于后续输入材料时对应
+    block 2 name "cladding"
+    block 3 name "coolant"
+
+可选地，为某些volume的某些surface设置全反射边界条件：
+
+.. code-block:: none
+
+    sideset 1 add surface 5 6 7 8       // 面5、6、7、8为四个侧面
+    sideset 1 name "Reflective"         // 设置全反射边界条件，"Reflective"名称严格区分大小写
+
+导出非结构网格文件：
+
+.. code-block:: none
+
+    export mesh "single-rod.e"
+
+执行后即可得到 ``single-rod.e`` 非结构网格文件。
+
+
+填写输入卡
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+使用UM几何时，用户需要准备完整的输入卡，并填写 ``UMTransport`` 模块和UM Universe模块。
+
+``UMTransport`` 模块包含两个必需的关键词，示例如下：
+
+.. code-block:: none
+
+    UMTransport filename=single-rod.e geometryType=2
+
+其中，``filename`` 指定非结构网格文件名；``geometryType=2`` 表示采用 UM 几何。两个关键词均为必填项。
+
+UM Universe填写示例如下：
+
+.. code-block:: none
+
+    Universe 0 UM=1
+    Cell 1 mat=1    // fuel
+    Cell 2 mat=2    // cladding
+    Cell 3 mat=3    // coolant
+
+``Universe 0 UM=1`` 表示该Universe为UM Universe。当前使用 ``Universe 0`` 即可，其下的栅元不需要SURFACE定义和布尔运算，只需指定材料。
+
+输入卡中的 ``Cell`` 编号必须与建模时的 ``block`` 编号严格对应，例如 ``Cell 1`` 对应 ``block 1``。用户不能删除或增加这些Cell，也不能使用其他Cell编号。
+
+使用UM几何时，不需要填写 ``SURFACE`` 模块，但仍需填写材料、源、计数器等其他所需模块。
+
+
+UM几何下的Plot功能
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+UM几何支持使用Plot功能绘制二维切片图，可按 ``CELL`` 或 ``MAT`` 着色，便于检查UM几何模型。
+
+为提高绘图效率，建议使用并行方式运行，例如：
+
+.. code-block:: sh
+
+    mpiexec -n 8 ./RMC inp
+
+建议使用 8 个核，并行核数不要超过 16。
+
+
+UM计数
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+基于UM几何进行粒子输运时，可以在区块(block)层级或网格元(element)层级进行计数，并选择是否按体积归一化。UM计数器支持RMC所有的计数类型，
+计数结果保存在 ``*.UnstructuredMeshTally.h5`` 文件中。
+
+非结构网格计数器的输入格式如下：
+
+.. code-block:: none
+
+    UnstructuredMeshTally <id> [Type=<type>] [Estimator=<type>]
+                            [Normalize=<type>] [Level=<type>]
+
+其中：
+
+- ``UnstructuredMeshTally`` 为非结构网格计数器的关键词。
+- ``id`` 为计数器编号，便于查阅输出。
+- ``Type`` 指定计数类型，1为中子通量，2为功率。
+- ``Estimator`` 指定计数估计器类型。``1`` 为径迹长度估计器（默认），``2`` 为碰撞估计器。通常使用默认的径迹长度估计器即可。
+- ``Normalize`` 指定是否对计数结果进行体积归一化。``1`` 表示体积无关结果（默认）；``0`` 表示不除以体积。
+- ``Level`` 指定计数层级。``0`` 表示网格元层级（默认）；``1`` 表示区块层级。
+
+示例如下：
+
+.. code-block:: none
+
+    Tally
+    UnstructuredMeshTally 1 type=1 level=0
+    UnstructuredMeshTally 2 type=1 level=1 normalize=0
+    UnstructuredMeshTally 3 type=2 level=0
+
+第1个计数器在网格元层级统计体积无关的中子通量；第2个计数器在区块层级统计体积相关的中子通量；第3个计数器在网格元层级统计功率分布。
+
+执行计算
+~~~~~~~~~~~~~~~
+将UM网格文件和输入卡放置于执行目录下，支持MPI、openmp或混合并行，可使用以下命令执行计算：
+
+.. code-block:: sh
+
+    mpiexec -n [并行核数] ./RMC [输入卡名]
+
+
 几何模块输入示例
 --------------------
 
